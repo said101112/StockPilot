@@ -12,8 +12,8 @@ import type { StockAlert } from "@/features/alerts/domain/types";
 import type { StockMovement } from "@/features/movements/domain/types";
 import CreateSupplierModal from "@/features/suppliers/components/CreateSupplierModal";
 import CreateProductModal from "@/features/products/components/CreateProductModal";
+import { StockPilotLogo } from "@/components/common/StockPilotLogo";
 import {
-  LayoutDashboard,
   Package,
   AlertTriangle,
   ShoppingCart,
@@ -110,12 +110,10 @@ export default function DashboardPage() {
     <div className="space-y-6">
       {/* Title & Actions */}
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <div className="flex items-center gap-3">
-          <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-brand-500/10 text-brand-600 dark:bg-brand-500/20 dark:text-brand-400">
-            <LayoutDashboard className="h-6 w-6" />
-          </div>
+        <div className="flex items-center gap-4">
+          <StockPilotLogo size="lg" />
           <div>
-            <h1 className="text-2xl font-bold tracking-tight text-gray-900 dark:text-white">
+            <h1 className="text-2xl font-black tracking-tight text-gray-900 dark:text-white">
               Cockpit Exécutif StockPilot (SAP MM)
             </h1>
             <p className="text-sm text-gray-500 dark:text-gray-400">

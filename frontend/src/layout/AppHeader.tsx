@@ -8,6 +8,7 @@ import { cn } from "@/utils";
 import { useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Link } from "react-router";
+import { StockPilotLogo } from "@/components/common/StockPilotLogo";
 
 const AppHeader: React.FC = () => {
   const { t } = useTranslation("header");
@@ -89,17 +90,11 @@ const AppHeader: React.FC = () => {
             {/* Cross Icon */}
           </button>
 
-          <Link to="/" className="xl:hidden">
-            <img
-              className="dark:hidden"
-              src="/images/logo/logo.svg"
-              alt="Logo"
-            />
-            <img
-              className="hidden dark:block"
-              src="/images/logo/logo-dark.svg"
-              alt="Logo"
-            />
+          <Link to="/" className="xl:hidden flex items-center gap-2">
+            <StockPilotLogo size="sm" />
+            <span className="text-base font-extrabold text-gray-900 dark:text-white">
+              Stock<span className="text-brand-500">Pilot</span>
+            </span>
           </Link>
 
           <button

@@ -2,6 +2,7 @@ import { useSidebar } from "@/context/SidebarContext";
 import { useCallback, useEffect } from "react";
 import { Link, useLocation } from "react-router";
 import { cn } from "../utils";
+import { StockPilotLogo } from "@/components/common/StockPilotLogo";
 import {
   LayoutDashboard,
   Building2,
@@ -168,17 +169,15 @@ export default function AppSidebar() {
           !isExpanded && !isHovered ? "xl:justify-center" : "justify-start",
         )}
       >
-        <Link to="/" className="flex items-center gap-3">
-          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-brand-500 font-black text-white shadow-md shadow-brand-500/30">
-            SP
-          </div>
+        <Link to="/" className="flex items-center gap-3 group">
+          <StockPilotLogo size="md" />
           {(isExpanded || isHovered || isMobileOpen) && (
             <div className="overflow-hidden">
-              <span className="block text-lg font-extrabold tracking-tight text-gray-900 dark:text-white">
+              <span className="block text-lg font-black tracking-tight text-gray-900 dark:text-white group-hover:text-brand-500 transition-colors">
                 Stock<span className="text-brand-500">Pilot</span>
               </span>
-              <span className="block text-[10px] font-bold uppercase tracking-widest text-brand-600 dark:text-brand-400">
-                ERP • SAP MM
+              <span className="block text-[9px] font-extrabold uppercase tracking-widest text-brand-600 dark:text-sky-400">
+                Aerospace & Supply Chain ERP
               </span>
             </div>
           )}
