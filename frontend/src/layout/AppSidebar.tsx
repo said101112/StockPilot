@@ -49,17 +49,17 @@ const masterDataItems: NavItem[] = [
 const procurementItems: NavItem[] = [
   {
     icon: <FileText className="h-5 w-5" />,
-    name: "Demandes d'Achat (DA)",
+    name: "Demandes d'Achat",
     path: "/requisitions",
   },
   {
     icon: <ShoppingCart className="h-5 w-5" />,
-    name: "Commandes d'Achat (PO)",
+    name: "Commandes Fournisseurs",
     path: "/orders",
   },
   {
     icon: <Truck className="h-5 w-5" />,
-    name: "Réceptions (MIGO)",
+    name: "Réceptions Marchandises",
     path: "/goods-receipt",
   },
 ];
@@ -72,7 +72,7 @@ const auditItems: NavItem[] = [
   },
   {
     icon: <History className="h-5 w-5" />,
-    name: "Audit des Mouvements",
+    name: "Historique Mouvements",
     path: "/movements",
   },
 ];

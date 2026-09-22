@@ -3,6 +3,17 @@ import type { PurchaseOrder, PurchaseRequisition } from "../domain/types";
 
 export const procurementApi = {
   // Demandes d'Achat (DA / PR)
+  createRequisition: (data: {
+    productId: string;
+    warehouseId: string;
+    requestedQuantity: number;
+    requestedDeliveryDate: string;
+    justification: string;
+  }) =>
+    apiClient<PurchaseRequisition>("/api/purchase-requisitions", {
+      method: "POST",
+      body: JSON.stringify(data),
+    }),
   getRequisitions: () => apiClient<PurchaseRequisition[]>("/api/purchase-requisitions"),
   getRequisitionById: (id: string) => apiClient<PurchaseRequisition>(`/api/purchase-requisitions/${id}`),
   submitRequisition: (id: string) =>

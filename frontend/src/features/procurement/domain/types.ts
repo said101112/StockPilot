@@ -9,6 +9,7 @@ export interface PurchaseRequisition {
   status: RequisitionStatus;
   notes: string;
   rejectionReason?: string;
+  requestedDeliveryDate?: string;
   requestedAt: string;
 }
 
