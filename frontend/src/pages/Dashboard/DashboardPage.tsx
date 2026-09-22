@@ -6,8 +6,28 @@ import { inventoryApi } from "@/features/inventory/api/inventoryApi";
 import { alertsApi } from "@/features/alerts/api/alertsApi";
 import { procurementApi } from "@/features/procurement/api/procurementApi";
 import { movementsApi } from "@/features/movements/api/movementsApi";
+import { suppliersApi } from "@/features/suppliers/api/suppliersApi";
+import { productsApi } from "@/features/products/api/productsApi";
 import type { StockAlert } from "@/features/alerts/domain/types";
 import type { StockMovement } from "@/features/movements/domain/types";
+import CreateSupplierModal from "@/features/suppliers/components/CreateSupplierModal";
+import CreateProductModal from "@/features/products/components/CreateProductModal";
+import {
+  LayoutDashboard,
+  Package,
+  AlertTriangle,
+  ShoppingCart,
+  Activity,
+  Building2,
+  Boxes,
+  Plus,
+  RefreshCw,
+  ArrowRight,
+  Flame,
+  FilePlus2,
+  ShieldAlert,
+  CheckCircle2,
+} from "lucide-react";
 
 export default function DashboardPage() {
   const [stats, setStats] = useState({
@@ -15,19 +35,27 @@ export default function DashboardPage() {
     activeAlertsCount: 0,
     openOrdersCount: 0,
     totalMovementsCount: 0,
+    totalSuppliersCount: 0,
+    totalProductsCount: 0,
   });
   const [alerts, setAlerts] = useState<StockAlert[]>([]);
   const [recentMovements, setRecentMovements] = useState<StockMovement[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
 
+  // Modals state
+  const [isSupplierModalOpen, setIsSupplierModalOpen] = useState(false);
+  const [isProductModalOpen, setIsProductModalOpen] = useState(false);
+
   const loadDashboardData = async () => {
     try {
       setLoading(true);
-      const [invList, alertList, poList, movList] = await Promise.all([
+      const [invList, alertList, poList, movList, suppList, prodList] = await Promise.all([
         inventoryApi.getAll().catch(() => []),
         alertsApi.getActive().catch(() => []),
         procurementApi.getOrders().catch(() => []),
         movementsApi.getAll().catch(() => []),
+        suppliersApi.getAll().catch(() => []),
+        productsApi.getAll().catch(() => []),
       ]);
 
       setStats({
@@ -35,6 +63,8 @@ export default function DashboardPage() {
         activeAlertsCount: alertList.length,
         openOrdersCount: poList.filter((po) => po.status === "ISSUED" || po.status === "PARTIALLY_RECEIVED").length,
         totalMovementsCount: movList.length,
+        totalSuppliersCount: suppList.length,
+        totalProductsCount: prodList.length,
       });
 
       setAlerts(alertList.slice(0, 5));
@@ -78,99 +108,116 @@ export default function DashboardPage() {
 
   return (
     <div className="space-y-6">
-      {/* Title */}
+      {/* Title & Actions */}
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
-            📊 Cockpit Exécutif StockPilot (SAP MM)
-          </h1>
-          <p className="text-sm text-gray-500 dark:text-gray-400">
-            Supervision en temps réel du cycle Procure-to-Pay, de l'état des stocks et des rebuts
-          </p>
+        <div className="flex items-center gap-3">
+          <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-brand-500/10 text-brand-600 dark:bg-brand-500/20 dark:text-brand-400">
+            <LayoutDashboard className="h-6 w-6" />
+          </div>
+          <div>
+            <h1 className="text-2xl font-bold tracking-tight text-gray-900 dark:text-white">
+              Cockpit Exécutif StockPilot (SAP MM)
+            </h1>
+            <p className="text-sm text-gray-500 dark:text-gray-400">
+              Supervision en temps réel du cycle Procure-to-Pay, de l'état des stocks et des rebuts
+            </p>
+          </div>
         </div>
-        <Button variant="outline" onClick={loadDashboardData} disabled={loading}>
-          🔄 Rafraîchir les données
-        </Button>
+
+        <div className="flex flex-wrap items-center gap-2">
+          <Button variant="outline" onClick={loadDashboardData} disabled={loading} className="gap-2">
+            <RefreshCw className={`h-4 w-4 ${loading ? "animate-spin" : ""}`} />
+            Actualiser
+          </Button>
+          <Button onClick={() => setIsSupplierModalOpen(true)} className="gap-2 bg-slate-800 hover:bg-slate-900 text-white dark:bg-slate-700">
+            <Building2 className="h-4 w-4" />
+            + Fournisseur
+          </Button>
+          <Button onClick={() => setIsProductModalOpen(true)} className="gap-2">
+            <Plus className="h-4 w-4" />
+            + Article
+          </Button>
+        </div>
       </div>
 
-      {/* KPI Cards */}
+      {/* Primary KPI Cards */}
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        {/* Card 1 */}
+        {/* Total Stock */}
         <div className="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm dark:border-gray-800 dark:bg-gray-900">
           <div className="flex items-center justify-between">
-            <span className="text-sm font-medium text-gray-500 dark:text-gray-400">
+            <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider">
               Stock Physique Total
-            </span>
-            <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-brand-50 text-brand-600 dark:bg-brand-500/15 dark:text-brand-400">
-              📦
-            </span>
+            </p>
+            <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-blue-50 text-blue-600 dark:bg-blue-950/40 dark:text-blue-400">
+              <Package className="h-5 w-5" />
+            </div>
           </div>
-          <div className="mt-4">
+          <div className="mt-3">
             <h3 className="text-3xl font-extrabold text-gray-900 dark:text-white">
-              {stats.totalStockCount} <span className="text-sm font-normal text-gray-500">PCS</span>
+              {stats.totalStockCount} <span className="text-base font-medium text-gray-400">PCS</span>
             </h3>
-            <p className="mt-1 text-xs text-success-600 dark:text-success-400">
-              En direct de la base centrale
+            <p className="mt-1 text-xs text-gray-500">
+              Sur {stats.totalProductsCount} article(s) référencé(s)
             </p>
           </div>
         </div>
 
-        {/* Card 2 */}
+        {/* Active Stock Alerts */}
         <div className="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm dark:border-gray-800 dark:bg-gray-900">
           <div className="flex items-center justify-between">
-            <span className="text-sm font-medium text-gray-500 dark:text-gray-400">
-              Alertes de Stock Actives
-            </span>
-            <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-error-50 text-error-600 dark:bg-error-500/15 dark:text-error-400">
-              🚨
-            </span>
+            <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider">
+              Alertes de Réappro
+            </p>
+            <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-amber-50 text-amber-600 dark:bg-amber-950/40 dark:text-amber-400">
+              <AlertTriangle className="h-5 w-5" />
+            </div>
           </div>
-          <div className="mt-4">
-            <h3 className="text-3xl font-extrabold text-error-600 dark:text-error-400">
+          <div className="mt-3">
+            <h3 className="text-3xl font-extrabold text-amber-600 dark:text-amber-400">
               {stats.activeAlertsCount}
             </h3>
-            <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
-              Articles au seuil de réapprovisionnement
+            <p className="mt-1 text-xs text-gray-500">
+              Articles sous le seuil de sécurité
             </p>
           </div>
         </div>
 
-        {/* Card 3 */}
+        {/* Open Orders */}
         <div className="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm dark:border-gray-800 dark:bg-gray-900">
           <div className="flex items-center justify-between">
-            <span className="text-sm font-medium text-gray-500 dark:text-gray-400">
-              Commandes Fournisseur (PO)
-            </span>
-            <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-blue-light-50 text-blue-light-600 dark:bg-blue-light-500/15 dark:text-blue-light-400">
-              📄
-            </span>
+            <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider">
+              Commandes en Cours (PO)
+            </p>
+            <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-brand-50 text-brand-600 dark:bg-brand-950/40 dark:text-brand-400">
+              <ShoppingCart className="h-5 w-5" />
+            </div>
           </div>
-          <div className="mt-4">
-            <h3 className="text-3xl font-extrabold text-gray-900 dark:text-white">
+          <div className="mt-3">
+            <h3 className="text-3xl font-extrabold text-brand-600 dark:text-brand-400">
               {stats.openOrdersCount}
             </h3>
-            <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
-              En cours de livraison / émis
+            <p className="mt-1 text-xs text-gray-500">
+              Statuts ISSUED & En transit
             </p>
           </div>
         </div>
 
-        {/* Card 4 */}
+        {/* Audit Movements */}
         <div className="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm dark:border-gray-800 dark:bg-gray-900">
           <div className="flex items-center justify-between">
-            <span className="text-sm font-medium text-gray-500 dark:text-gray-400">
+            <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider">
               Mouvements Traçables
-            </span>
-            <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-success-50 text-success-600 dark:bg-success-500/15 dark:text-success-400">
-              📜
-            </span>
+            </p>
+            <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-emerald-50 text-emerald-600 dark:bg-emerald-950/40 dark:text-emerald-400">
+              <Activity className="h-5 w-5" />
+            </div>
           </div>
-          <div className="mt-4">
-            <h3 className="text-3xl font-extrabold text-gray-900 dark:text-white">
+          <div className="mt-3">
+            <h3 className="text-3xl font-extrabold text-emerald-600 dark:text-emerald-400">
               {stats.totalMovementsCount}
             </h3>
-            <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
-              Grand livre d'audit immuable
+            <p className="mt-1 text-xs text-gray-500">
+              Livre de journal audit immuable
             </p>
           </div>
         </div>
@@ -182,36 +229,42 @@ export default function DashboardPage() {
         <div className="lg:col-span-2 rounded-2xl border border-gray-200 bg-white p-6 shadow-sm dark:border-gray-800 dark:bg-gray-900">
           <div className="flex items-center justify-between border-b border-gray-100 pb-4 dark:border-gray-800">
             <div className="flex items-center gap-2">
-              <span className="text-xl">🚨</span>
+              <ShieldAlert className="h-5 w-5 text-amber-500" />
               <h2 className="text-lg font-bold text-gray-900 dark:text-white">
                 Alertes Récentes à Traiter
               </h2>
             </div>
             <Link
               to="/alerts"
-              className="text-xs font-semibold text-brand-600 hover:underline dark:text-brand-400"
+              className="flex items-center gap-1 text-xs font-semibold text-brand-600 hover:underline dark:text-brand-400"
             >
-              Voir toutes les alertes →
+              Voir toutes les alertes <ArrowRight className="h-3.5 w-3.5" />
             </Link>
           </div>
 
           <div className="mt-4 space-y-3">
             {alerts.length === 0 ? (
-              <p className="py-6 text-center text-sm text-gray-500">
-                ✅ Aucune alerte active. Tous les stocks sont au-dessus de leur point de commande.
-              </p>
+              <div className="flex flex-col items-center justify-center py-8 text-center">
+                <CheckCircle2 className="h-10 w-10 text-emerald-500 mb-2" />
+                <p className="text-sm font-semibold text-gray-800 dark:text-gray-200">
+                  Aucune alerte active
+                </p>
+                <p className="text-xs text-gray-400 mt-1">
+                  Tous les stocks physiques sont actuellement au-dessus de leur point de commande.
+                </p>
+              </div>
             ) : (
               alerts.map((al) => (
                 <div
                   key={al.id}
-                  className="flex items-center justify-between rounded-xl border border-gray-100 bg-gray-50 p-3 dark:border-gray-800 dark:bg-gray-800/40"
+                  className="flex items-center justify-between rounded-xl border border-gray-100 bg-gray-50/70 p-3.5 dark:border-gray-800 dark:bg-gray-800/40"
                 >
                   <div className="space-y-1">
-                    <p className="font-mono text-xs font-semibold text-gray-900 dark:text-white">
+                    <p className="font-mono text-xs font-bold text-gray-900 dark:text-white">
                       Article {al.productId.substring(0, 16)}...
                     </p>
                     <p className="text-xs text-gray-500">
-                      Stock actuel : <strong>{al.currentStock} PCS</strong> | Seuil de commande :{" "}
+                      Stock actuel : <strong className="text-gray-900 dark:text-white">{al.currentStock} PCS</strong> | Point de commande :{" "}
                       <strong>{al.reorderPoint} PCS</strong>
                     </p>
                   </div>
@@ -223,90 +276,144 @@ export default function DashboardPage() {
         </div>
 
         {/* Quick Actions & SAP MM Shortcuts */}
-        <div className="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm dark:border-gray-800 dark:bg-gray-900">
-          <h2 className="text-lg font-bold text-gray-900 dark:text-white">
-            ⚡ Raccourcis Processus
-          </h2>
-          <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-            Opérations directes sur la chaîne logistique
-          </p>
+        <div className="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm dark:border-gray-800 dark:bg-gray-900 flex flex-col justify-between">
+          <div>
+            <div className="flex items-center gap-2">
+              <Activity className="h-5 w-5 text-brand-500" />
+              <h2 className="text-lg font-bold text-gray-900 dark:text-white">
+                Raccourcis Opérations
+              </h2>
+            </div>
+            <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+              Créations directes et actions sur la chaîne logistique
+            </p>
 
-          <div className="mt-6 flex flex-col gap-3">
-            <Link to="/inventory">
-              <Button variant="outline" className="w-full justify-start text-left">
-                💥 Déclarer Casse / Rebut (SAP 551)
-              </Button>
-            </Link>
-            <Link to="/requisitions">
-              <Button variant="outline" className="w-full justify-start text-left">
-                📝 Créer une Demande d'Achat (DA)
-              </Button>
-            </Link>
-            <Link to="/orders">
-              <Button variant="outline" className="w-full justify-start text-left">
-                📄 Suivre les Bons de Commande (PO)
-              </Button>
-            </Link>
-            <Link to="/goods-receipt">
-              <Button variant="outline" className="w-full justify-start text-left">
-                📥 Enregistrer une Réception (MIGO)
-              </Button>
-            </Link>
+            <div className="mt-4 flex flex-col gap-2.5">
+              <button
+                type="button"
+                onClick={() => setIsProductModalOpen(true)}
+                className="flex items-center gap-3 w-full rounded-xl border border-gray-200 bg-gray-50/50 p-3 text-left text-sm font-semibold text-gray-800 transition-colors hover:border-brand-500 hover:bg-brand-50/50 dark:border-gray-700 dark:bg-gray-800/60 dark:text-gray-200 dark:hover:border-brand-500"
+              >
+                <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-blue-50 text-blue-600 dark:bg-blue-950/40 dark:text-blue-400 shrink-0">
+                  <Boxes className="h-4 w-4" />
+                </div>
+                <div>
+                  <span className="block text-xs font-bold">Ajouter un Article</span>
+                  <span className="block text-[11px] font-normal text-gray-400">Créer une référence au catalogue</span>
+                </div>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setIsSupplierModalOpen(true)}
+                className="flex items-center gap-3 w-full rounded-xl border border-gray-200 bg-gray-50/50 p-3 text-left text-sm font-semibold text-gray-800 transition-colors hover:border-brand-500 hover:bg-brand-50/50 dark:border-gray-700 dark:bg-gray-800/60 dark:text-gray-200 dark:hover:border-brand-500"
+              >
+                <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300 shrink-0">
+                  <Building2 className="h-4 w-4" />
+                </div>
+                <div>
+                  <span className="block text-xs font-bold">Ajouter un Fournisseur</span>
+                  <span className="block text-[11px] font-normal text-gray-400">Enregistrer un partenaire d'achat</span>
+                </div>
+              </button>
+
+              <Link
+                to="/inventory"
+                className="flex items-center gap-3 w-full rounded-xl border border-red-200/70 bg-red-50/30 p-3 text-left text-sm font-semibold text-red-900 transition-colors hover:bg-red-50 dark:border-red-900/40 dark:bg-red-950/20 dark:text-red-300"
+              >
+                <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-red-100 text-red-600 dark:bg-red-900/40 dark:text-red-400 shrink-0">
+                  <Flame className="h-4 w-4" />
+                </div>
+                <div>
+                  <span className="block text-xs font-bold">Déclarer Rebut (SAP 551)</span>
+                  <span className="block text-[11px] font-normal text-red-600/70 dark:text-red-400/70">Sortie de stock pour pièce cassée</span>
+                </div>
+              </Link>
+
+              <Link
+                to="/requisitions"
+                className="flex items-center gap-3 w-full rounded-xl border border-gray-200 bg-gray-50/50 p-3 text-left text-sm font-semibold text-gray-800 transition-colors hover:border-brand-500 hover:bg-brand-50/50 dark:border-gray-700 dark:bg-gray-800/60 dark:text-gray-200 dark:hover:border-brand-500"
+              >
+                <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-purple-50 text-purple-600 dark:bg-purple-950/40 dark:text-purple-400 shrink-0">
+                  <FilePlus2 className="h-4 w-4" />
+                </div>
+                <div>
+                  <span className="block text-xs font-bold">Demandes d'Achat (DA)</span>
+                  <span className="block text-[11px] font-normal text-gray-400">Gérer l'approbation du besoin</span>
+                </div>
+              </Link>
+            </div>
+          </div>
+
+          <div className="mt-4 pt-3 border-t border-gray-100 dark:border-gray-800 text-[11px] text-gray-400 text-center">
+            Standard SAP MM Procure-to-Pay Intégré
           </div>
         </div>
       </div>
 
       {/* Recent Movements Audit Table */}
-      <div className="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm dark:border-gray-800 dark:bg-gray-900">
+      <div className="overflow-hidden rounded-2xl border border-gray-200 bg-white p-6 shadow-sm dark:border-gray-800 dark:bg-gray-900">
         <div className="flex items-center justify-between border-b border-gray-100 pb-4 dark:border-gray-800">
           <div className="flex items-center gap-2">
-            <span className="text-xl">📜</span>
+            <Activity className="h-5 w-5 text-emerald-500" />
             <h2 className="text-lg font-bold text-gray-900 dark:text-white">
-              Derniers Mouvements de Stock (Traçabilité Audit SAP)
+              Derniers Mouvements de Stock Enregistrés
             </h2>
           </div>
           <Link
             to="/movements"
-            className="text-xs font-semibold text-brand-600 hover:underline dark:text-brand-400"
+            className="flex items-center gap-1 text-xs font-semibold text-brand-600 hover:underline dark:text-brand-400"
           >
-            Consulter l'audit complet →
+            Grand Livre complet <ArrowRight className="h-3.5 w-3.5" />
           </Link>
         </div>
 
         <div className="mt-4 overflow-x-auto">
-          <table className="min-w-full text-left text-sm">
-            <thead className="text-xs uppercase text-gray-500 dark:text-gray-400">
+          <table className="w-full text-left text-sm text-gray-600 dark:text-gray-300">
+            <thead className="border-b border-gray-100 bg-gray-50/75 text-xs uppercase tracking-wider text-gray-400 dark:border-gray-800 dark:bg-gray-800/50">
               <tr>
-                <th className="py-3">N° Mouvement</th>
-                <th className="py-3">Type SAP</th>
-                <th className="py-3 text-center">Quantité</th>
-                <th className="py-3">Référence / Motif</th>
-                <th className="py-3 text-right">Horodatage</th>
+                <th className="px-4 py-3">N° Mouvement</th>
+                <th className="px-4 py-3">Type SAP MM</th>
+                <th className="px-4 py-3">Quantité</th>
+                <th className="px-4 py-3">Référence / Motif</th>
+                <th className="px-4 py-3">Date</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100 dark:divide-gray-800">
               {recentMovements.length === 0 ? (
                 <tr>
-                  <td colSpan={5} className="py-4 text-center text-gray-500">
-                    Aucun mouvement enregistré.
+                  <td colSpan={5} className="py-6 text-center text-sm text-gray-500">
+                    Aucun mouvement enregistré pour l'instant.
                   </td>
                 </tr>
               ) : (
                 recentMovements.map((mov) => (
-                  <tr key={mov.id}>
-                    <td className="py-3 font-mono font-bold text-gray-900 dark:text-white">
+                  <tr key={mov.id} className="hover:bg-gray-50/50 dark:hover:bg-gray-800/50">
+                    <td className="px-4 py-3 font-mono text-xs font-semibold text-gray-900 dark:text-white">
                       {mov.movementNumber}
                     </td>
-                    <td className="py-3">{getMovementTypeBadge(mov.type)}</td>
-                    <td className="py-3 text-center font-bold text-gray-900 dark:text-white">
-                      {mov.type === "SCRAP_DAMAGED" || mov.type === "INTERNAL_CONSUMPTION" ? "-" : "+"}
-                      {mov.quantity} PCS
+                    <td className="px-4 py-3">{getMovementTypeBadge(mov.type)}</td>
+                    <td className="px-4 py-3">
+                      <span
+                        className={`font-mono text-xs font-bold ${
+                          mov.quantity > 0
+                            ? "text-emerald-600 dark:text-emerald-400"
+                            : "text-rose-600 dark:text-rose-400"
+                        }`}
+                      >
+                        {mov.quantity > 0 ? `+${mov.quantity}` : mov.quantity} PCS
+                      </span>
                     </td>
-                    <td className="py-3 text-xs text-gray-600 dark:text-gray-400">
-                      {mov.referenceDocument}
+                    <td className="px-4 py-3 text-xs text-gray-500">
+                      {mov.referenceDocument || "N/A"}
                     </td>
-                    <td className="py-3 text-right text-xs text-gray-500">
-                      {new Date(mov.timestamp).toLocaleString("fr-FR")}
+                    <td className="px-4 py-3 font-mono text-xs text-gray-400">
+                      {new Date(mov.timestamp).toLocaleString("fr-FR", {
+                        day: "2-digit",
+                        month: "2-digit",
+                        hour: "2-digit",
+                        minute: "2-digit",
+                      })}
                     </td>
                   </tr>
                 ))
@@ -315,6 +422,23 @@ export default function DashboardPage() {
           </table>
         </div>
       </div>
+
+      {/* Creation Modals */}
+      <CreateSupplierModal
+        isOpen={isSupplierModalOpen}
+        onClose={() => setIsSupplierModalOpen(false)}
+        onSuccess={() => {
+          loadDashboardData();
+        }}
+      />
+
+      <CreateProductModal
+        isOpen={isProductModalOpen}
+        onClose={() => setIsProductModalOpen(false)}
+        onSuccess={() => {
+          loadDashboardData();
+        }}
+      />
     </div>
   );
 }

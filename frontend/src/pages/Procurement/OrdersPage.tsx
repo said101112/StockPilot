@@ -3,6 +3,7 @@ import Button from "@/components/ui/button/Button";
 import Badge from "@/components/ui/badge/Badge";
 import { procurementApi } from "@/features/procurement/api/procurementApi";
 import type { PurchaseOrder } from "@/features/procurement/domain/types";
+import { ShoppingCart, RefreshCw, Send, AlertCircle, ShoppingBag } from "lucide-react";
 
 export default function OrdersPage() {
   const [orders, setOrders] = useState<PurchaseOrder[]>([]);
@@ -15,9 +16,9 @@ export default function OrdersPage() {
       setLoading(true);
       setError(null);
       const data = await procurementApi.getOrders();
-      setOrders(data);
-    } catch (err: any) {
-      setError(err.message || "Erreur lors du chargement des Bons de Commande");
+      setOrders(data || []);
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : "Erreur lors du chargement des Bons de Commande");
     } finally {
       setLoading(false);
     }
@@ -32,8 +33,8 @@ export default function OrdersPage() {
       setActionLoading(id);
       await procurementApi.issueOrder(id);
       await fetchOrders();
-    } catch (err: any) {
-      setError(err.message);
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : "Erreur lors de l'émission");
     } finally {
       setActionLoading(null);
     }
@@ -59,99 +60,100 @@ export default function OrdersPage() {
   return (
     <div className="space-y-6">
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
-            📄 Bons de Commande Fournisseur (PO / Purchase Order)
-          </h1>
-          <p className="text-sm text-gray-500 dark:text-gray-400">
-            Engagement juridique d'achat émis auprès du fournisseur qualifié
-          </p>
+        <div className="flex items-center gap-3">
+          <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-brand-500/10 text-brand-600 dark:bg-brand-500/20 dark:text-brand-400">
+            <ShoppingCart className="h-6 w-6" />
+          </div>
+          <div>
+            <h1 className="text-2xl font-bold tracking-tight text-gray-900 dark:text-white">
+              Commandes d'Achat (PO / Purchase Order)
+            </h1>
+            <p className="text-sm text-gray-500 dark:text-gray-400">
+              Contrats d'achat officiels envoyés aux fournisseurs (Procure-to-Pay SAP MM)
+            </p>
+          </div>
         </div>
-        <Button variant="outline" onClick={fetchOrders} disabled={loading}>
-          🔄 Actualiser
+
+        <Button variant="outline" onClick={fetchOrders} disabled={loading} className="gap-2">
+          <RefreshCw className={`h-4 w-4 ${loading ? "animate-spin" : ""}`} />
+          Actualiser
         </Button>
       </div>
 
       {error && (
-        <div className="rounded-xl bg-error-50 p-4 text-sm text-error-600 dark:bg-error-500/15 dark:text-error-400">
-          {error}
+        <div className="flex items-center gap-2 rounded-2xl bg-red-50 p-4 text-sm text-red-600 dark:bg-red-500/15 dark:text-red-400">
+          <AlertCircle className="h-5 w-5 shrink-0" />
+          <span>{error}</span>
         </div>
       )}
 
       <div className="overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm dark:border-gray-800 dark:bg-gray-900">
         <div className="overflow-x-auto">
-          <table className="min-w-full text-left text-sm">
-            <thead className="border-b border-gray-200 bg-gray-50 text-xs font-semibold uppercase tracking-wider text-gray-500 dark:border-gray-800 dark:bg-gray-800/50 dark:text-gray-400">
+          <table className="min-w-full text-left text-sm text-gray-600 dark:text-gray-300">
+            <thead className="border-b border-gray-200 bg-gray-50/75 text-xs font-semibold uppercase tracking-wider text-gray-500 dark:border-gray-800 dark:bg-gray-800/50 dark:text-gray-400">
               <tr>
                 <th className="px-6 py-4">N° Commande (PO)</th>
-                <th className="px-6 py-4">Fournisseur ID</th>
-                <th className="px-6 py-4 text-center">Articles</th>
-                <th className="px-6 py-4 text-center">Montant Total</th>
-                <th className="px-6 py-4">Conditions</th>
-                <th className="px-6 py-4">Statut Juridique</th>
+                <th className="px-6 py-4">Fournisseur Qualifié</th>
+                <th className="px-6 py-4">Montant Total</th>
+                <th className="px-6 py-4">Statut Commande</th>
+                <th className="px-6 py-4">Date de Livraison Prévue</th>
                 <th className="px-6 py-4 text-right">Actions Acheteur</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-gray-200 dark:divide-gray-800">
+            <tbody className="divide-y divide-gray-100 dark:divide-gray-800">
               {loading ? (
                 <tr>
-                  <td colSpan={7} className="px-6 py-8 text-center text-gray-500">
-                    Chargement des commandes...
+                  <td colSpan={6} className="px-6 py-12 text-center text-gray-500">
+                    <RefreshCw className="mx-auto h-6 w-6 animate-spin text-brand-500 mb-2" />
+                    Chargement des bons de commande...
                   </td>
                 </tr>
               ) : orders.length === 0 ? (
                 <tr>
-                  <td colSpan={7} className="px-6 py-8 text-center text-gray-500">
-                    Aucun bon de commande enregistré.
+                  <td colSpan={6} className="px-6 py-12 text-center">
+                    <ShoppingBag className="mx-auto h-10 w-10 text-gray-300 dark:text-gray-600 mb-2" />
+                    <p className="font-semibold text-gray-900 dark:text-white">Aucun bon de commande</p>
+                    <p className="text-xs text-gray-400">Les commandes générées apparaîtront ici.</p>
                   </td>
                 </tr>
               ) : (
                 orders.map((po) => (
                   <tr
                     key={po.id}
-                    className="hover:bg-gray-50/50 transition dark:hover:bg-gray-800/30"
+                    className="hover:bg-gray-50/50 transition-colors dark:hover:bg-gray-800/30"
                   >
                     <td className="px-6 py-4 font-mono font-bold text-gray-900 dark:text-white">
                       {po.poNumber}
                     </td>
-                    <td className="px-6 py-4 font-mono text-xs text-gray-600 dark:text-gray-300">
-                      {po.supplierId.substring(0, 16)}...
+                    <td className="px-6 py-4 font-mono text-xs text-gray-500">
+                      {po.supplierId ? `${po.supplierId.substring(0, 16)}...` : "Fournisseur A"}
                     </td>
-                    <td className="px-6 py-4 text-center">
-                      <span className="font-semibold text-gray-900 dark:text-white">
-                        {po.items?.length || 0}
-                      </span>{" "}
-                      ligne(s)
-                    </td>
-                    <td className="px-6 py-4 text-center font-bold text-brand-600 dark:text-brand-400">
-                      {po.totalAmount?.toLocaleString("fr-FR", {
+                    <td className="px-6 py-4 font-mono font-bold text-brand-600 dark:text-brand-400">
+                      {po.totalAmount.toLocaleString("fr-FR", {
                         minimumFractionDigits: 2,
+                        maximumFractionDigits: 2,
                       })}{" "}
-                      {po.currency}
-                    </td>
-                    <td className="px-6 py-4 text-xs font-mono text-gray-500">
-                      {po.paymentTerms}
+                      {po.currency || "EUR"}
                     </td>
                     <td className="px-6 py-4">{getStatusBadge(po.status)}</td>
+                    <td className="px-6 py-4 text-xs font-mono text-gray-500">
+                      {po.expectedDeliveryDate || "À convenir"}
+                    </td>
                     <td className="px-6 py-4 text-right">
-                      {po.status === "DRAFT" && (
+                      {po.status === "DRAFT" ? (
                         <Button
                           size="sm"
                           variant="primary"
-                          disabled={actionLoading === po.id}
                           onClick={() => handleIssue(po.id)}
+                          disabled={actionLoading === po.id}
+                          className="gap-1.5 text-xs bg-brand-600 hover:bg-brand-700 text-white"
                         >
-                          📤 Émettre au Fournisseur
+                          <Send className="h-3.5 w-3.5" />
+                          Émettre au Fournisseur
                         </Button>
-                      )}
-                      {po.status === "ISSUED" && (
-                        <span className="text-xs font-semibold text-brand-600 dark:text-brand-400">
-                          En attente de livraison (MIGO)
-                        </span>
-                      )}
-                      {po.status === "COMPLETED" && (
-                        <span className="text-xs font-semibold text-success-600 dark:text-success-400">
-                          ✅ Clôturée (Totalement Reçue)
+                      ) : (
+                        <span className="text-xs text-gray-400 italic">
+                          Document Verrouillé
                         </span>
                       )}
                     </td>

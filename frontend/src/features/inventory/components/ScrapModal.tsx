@@ -7,6 +7,8 @@ import TextArea from "@/components/form/input/TextArea";
 import { inventoryApi } from "../api/inventoryApi";
 import type { InventoryItem, ScrapInventoryResponse } from "../domain/types";
 
+import { Flame } from "lucide-react";
+
 interface ScrapModalProps {
   isOpen: boolean;
   onClose: () => void;
@@ -45,8 +47,8 @@ export const ScrapModal: React.FC<ScrapModalProps> = ({
       });
       onSuccess(res);
       onClose();
-    } catch (err: any) {
-      setError(err.message || "Erreur lors de la déclaration de casse");
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : "Erreur lors de la déclaration de casse");
     } finally {
       setLoading(false);
     }
@@ -57,7 +59,7 @@ export const ScrapModal: React.FC<ScrapModalProps> = ({
       <div className="mb-6">
         <div className="flex items-center gap-3">
           <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-error-50 text-error-600 dark:bg-error-500/15 dark:text-error-400">
-            <span className="text-2xl">💥</span>
+            <Flame className="h-6 w-6" />
           </div>
           <div>
             <h3 className="text-xl font-bold text-gray-900 dark:text-white">

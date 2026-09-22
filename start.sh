@@ -45,6 +45,10 @@ else
     BACKEND_PID=$!
 fi
 
+# Temporisation pour laisser le serveur Spring Boot et PostgreSQL s'initialiser
+echo "⏳ Initialisation de Spring Boot & PostgreSQL..."
+sleep 4
+
 # 2. Démarrage du Frontend React Vite (Port 5173)
 echo "💻 [2/2] Démarrage du Frontend React Vite (Port 5173)..."
 cd "$ROOT_DIR/frontend" || exit 1

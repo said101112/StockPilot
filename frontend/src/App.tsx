@@ -8,6 +8,8 @@ import OrdersPage from "./pages/Procurement/OrdersPage";
 import GoodsReceiptPage from "./pages/GoodsReceipt/GoodsReceiptPage";
 import AlertsPage from "./pages/Alerts/AlertsPage";
 import MovementsPage from "./pages/Movements/MovementsPage";
+import SuppliersPage from "./pages/Suppliers/SuppliersPage";
+import ProductsPage from "./pages/Products/ProductsPage";
 import NotFound from "./pages/OtherPage/NotFound";
 
 export default function App() {
@@ -20,6 +22,8 @@ export default function App() {
           <Route element={<AppLayout />}>
             <Route index path="/" element={<DashboardPage />} />
             <Route path="/inventory" element={<InventoryPage />} />
+            <Route path="/products" element={<ProductsPage />} />
+            <Route path="/suppliers" element={<SuppliersPage />} />
             <Route path="/requisitions" element={<RequisitionsPage />} />
             <Route path="/orders" element={<OrdersPage />} />
             <Route path="/goods-receipt" element={<GoodsReceiptPage />} />

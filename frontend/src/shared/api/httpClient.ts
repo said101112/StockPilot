@@ -47,3 +47,22 @@ export async function apiClient<T>(endpoint: string, options: RequestInit = {}):
 
   return response.json();
 }
+
+export const httpClient = {
+  get: <T>(url: string) => apiClient<T>(url.startsWith("/api") ? url : `/api${url}`),
+  post: <T>(url: string, body?: unknown) =>
+    apiClient<T>(url.startsWith("/api") ? url : `/api${url}`, {
+      method: "POST",
+      body: body ? JSON.stringify(body) : undefined,
+    }),
+  put: <T>(url: string, body?: unknown) =>
+    apiClient<T>(url.startsWith("/api") ? url : `/api${url}`, {
+      method: "PUT",
+      body: body ? JSON.stringify(body) : undefined,
+    }),
+  delete: <T>(url: string) =>
+    apiClient<T>(url.startsWith("/api") ? url : `/api${url}`, {
+      method: "DELETE",
+    }),
+};
+
