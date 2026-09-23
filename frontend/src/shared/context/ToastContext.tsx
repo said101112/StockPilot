@@ -71,7 +71,7 @@ export const ToastProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     >
       {children}
       {/* Toast Notification Container */}
-      <div className="fixed top-5 right-5 z-[9999] flex flex-col gap-3 max-w-sm w-full pointer-events-none">
+      <div className="fixed top-20 right-4 sm:right-6 z-[9999999] flex flex-col gap-3 max-w-sm sm:max-w-md w-full pointer-events-none">
         {toasts.map((toast) => {
           const isSuccess = toast.type === "success";
           const isError = toast.type === "error";
@@ -79,27 +79,28 @@ export const ToastProvider: React.FC<{ children: React.ReactNode }> = ({ childre
           const isInfo = toast.type === "info";
 
           const bgStyle = isSuccess
-            ? "bg-white dark:bg-gray-800 border-emerald-500/30 text-emerald-950 dark:text-emerald-100"
+            ? "bg-white/95 dark:bg-gray-850/95 border-emerald-500/40 text-emerald-950 dark:text-emerald-100 shadow-emerald-500/10"
             : isError
-            ? "bg-white dark:bg-gray-800 border-rose-500/30 text-rose-950 dark:text-rose-100"
+            ? "bg-white/95 dark:bg-gray-850/95 border-rose-500/40 text-rose-950 dark:text-rose-100 shadow-rose-500/10"
             : isWarning
-            ? "bg-white dark:bg-gray-800 border-amber-500/30 text-amber-950 dark:text-amber-100"
-            : "bg-white dark:bg-gray-800 border-sky-500/30 text-sky-950 dark:text-sky-100";
+            ? "bg-white/95 dark:bg-gray-850/95 border-amber-500/40 text-amber-950 dark:text-amber-100 shadow-amber-500/10"
+            : "bg-white/95 dark:bg-gray-850/95 border-sky-500/40 text-sky-950 dark:text-sky-100 shadow-sky-500/10";
 
           const iconColor = isSuccess
-            ? "text-emerald-500 bg-emerald-50 dark:bg-emerald-950/50"
+            ? "text-emerald-600 bg-emerald-50 dark:bg-emerald-950/60 dark:text-emerald-400"
             : isError
-            ? "text-rose-500 bg-rose-50 dark:bg-rose-950/50"
+            ? "text-rose-600 bg-rose-50 dark:bg-rose-950/60 dark:text-rose-400"
             : isWarning
-            ? "text-amber-500 bg-amber-50 dark:bg-amber-950/50"
-            : "text-sky-500 bg-sky-50 dark:bg-sky-950/50";
+            ? "text-amber-600 bg-amber-50 dark:bg-amber-950/60 dark:text-amber-400"
+            : "text-sky-600 bg-sky-50 dark:bg-sky-950/60 dark:text-sky-400";
 
           return (
             <div
               key={toast.id}
-              className={`pointer-events-auto flex items-start gap-3 p-4 rounded-xl border shadow-xl backdrop-blur-md transition-all duration-300 transform translate-y-0 opacity-100 animate-slide-in ${bgStyle}`}
+              className={`pointer-events-auto flex items-start gap-3.5 p-4 rounded-2xl border shadow-2xl backdrop-blur-xl transition-all duration-300 transform translate-y-0 opacity-100 ${bgStyle}`}
+              role="alert"
             >
-              <div className={`p-2 rounded-lg shrink-0 ${iconColor}`}>
+              <div className={`p-2 rounded-xl shrink-0 ${iconColor}`}>
                 {isSuccess && <CheckCircle2 className="w-5 h-5" />}
                 {isError && <AlertCircle className="w-5 h-5" />}
                 {isWarning && <AlertTriangle className="w-5 h-5" />}
@@ -107,18 +108,19 @@ export const ToastProvider: React.FC<{ children: React.ReactNode }> = ({ childre
               </div>
               <div className="flex-1 min-w-0 pt-0.5">
                 {toast.title && (
-                  <h4 className="text-sm font-semibold text-gray-900 dark:text-white">
+                  <h4 className="text-sm font-bold text-gray-900 dark:text-white leading-tight">
                     {toast.title}
                   </h4>
                 )}
-                <p className="text-xs text-gray-600 dark:text-gray-300 mt-0.5 break-words leading-relaxed">
+                <p className="text-xs text-gray-700 dark:text-gray-200 mt-1 break-words leading-relaxed font-medium">
                   {toast.message}
                 </p>
               </div>
               <button
                 type="button"
                 onClick={() => removeToast(toast.id)}
-                className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 p-1 rounded-md transition-colors"
+                className="text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 p-1.5 rounded-lg transition-colors hover:bg-gray-100 dark:hover:bg-gray-700/50 -mr-1 -mt-1"
+                aria-label="Fermer"
               >
                 <X className="w-4 h-4" />
               </button>
