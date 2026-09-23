@@ -165,27 +165,27 @@ export default function InventoryPage() {
           <table className="min-w-full text-left text-sm text-gray-600 dark:text-gray-300">
             <thead className="border-b border-gray-200 bg-gray-50/75 text-xs font-semibold uppercase tracking-wider text-gray-500 dark:border-gray-800 dark:bg-gray-800/50 dark:text-gray-400">
               <tr>
-                <th className="px-6 py-4">Article & Référence</th>
-                <th className="px-6 py-4">Entrepôt Magasin</th>
-                <th className="px-6 py-4 text-center">Stock Physique</th>
-                <th className="px-6 py-4 text-center">Réservé</th>
-                <th className="px-6 py-4 text-center">Disponible</th>
-                <th className="px-6 py-4 text-center">Point de Réappro</th>
-                <th className="px-6 py-4">État du Stock</th>
-                <th className="px-6 py-4 text-right">Actions</th>
+                <th className="px-3 sm:px-4 py-3.5">Article & Référence</th>
+                <th className="px-3 sm:px-4 py-3.5">Entrepôt Magasin</th>
+                <th className="px-3 sm:px-4 py-3.5 text-center">Stock Physique</th>
+                <th className="px-3 sm:px-4 py-3.5 text-center">Réservé</th>
+                <th className="px-3 sm:px-4 py-3.5 text-center">Disponible</th>
+                <th className="px-3 sm:px-4 py-3.5 text-center">Point de Réappro</th>
+                <th className="px-3 sm:px-4 py-3.5">État du Stock</th>
+                <th className="px-3 sm:px-4 py-3.5 text-right whitespace-nowrap">Actions</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100 dark:divide-gray-800">
               {loading ? (
                 <tr>
-                  <td colSpan={8} className="px-6 py-12 text-center text-gray-500">
+                  <td colSpan={8} className="px-4 py-12 text-center text-gray-500">
                     <RefreshCw className="mx-auto h-6 w-6 animate-spin text-brand-500 mb-2" />
                     Chargement de l'inventaire en cours...
                   </td>
                 </tr>
               ) : inventories.length === 0 ? (
                 <tr>
-                  <td colSpan={8} className="px-6 py-12 text-center">
+                  <td colSpan={8} className="px-4 py-12 text-center">
                     <Package className="mx-auto h-10 w-10 text-gray-300 dark:text-gray-600 mb-2" />
                     <p className="font-semibold text-gray-900 dark:text-white">Aucun inventaire trouvé</p>
                     <p className="text-xs text-gray-400">Initialisez du stock depuis le catalogue articles.</p>
@@ -201,7 +201,7 @@ export default function InventoryPage() {
                       key={inv.id}
                       className="transition-colors hover:bg-gray-50/50 dark:hover:bg-gray-800/50"
                     >
-                      <td className="px-6 py-4">
+                      <td className="px-3 sm:px-4 py-3">
                         <div className="flex flex-col">
                           <span className="font-bold text-gray-900 dark:text-white">
                             {product ? product.name : "Article"}
@@ -211,36 +211,35 @@ export default function InventoryPage() {
                           </span>
                         </div>
                       </td>
-                      <td className="px-6 py-4">
+                      <td className="px-3 sm:px-4 py-3">
                         <div className="flex items-center gap-1.5 text-xs text-gray-700 dark:text-gray-300 font-medium">
                           <Warehouse className="h-3.5 w-3.5 text-brand-500 shrink-0" />
                           <span>{whName}</span>
                         </div>
                       </td>
-                      <td className="px-6 py-4 text-center font-mono font-bold text-gray-900 dark:text-white">
+                      <td className="px-3 sm:px-4 py-3 text-center font-mono font-bold text-gray-900 dark:text-white">
                         {inv.quantityOnHand} PCS
                       </td>
-                      <td className="px-6 py-4 text-center font-mono text-gray-500">
+                      <td className="px-3 sm:px-4 py-3 text-center font-mono text-gray-500">
                         {inv.reservedQuantity} PCS
                       </td>
-                      <td className="px-6 py-4 text-center font-mono font-bold text-brand-600 dark:text-brand-400">
+                      <td className="px-3 sm:px-4 py-3 text-center font-mono font-bold text-brand-600 dark:text-brand-400">
                         {inv.availableQuantity} PCS
                       </td>
-                      <td className="px-6 py-4 text-center font-mono font-medium text-gray-500">
+                      <td className="px-3 sm:px-4 py-3 text-center font-mono font-medium text-gray-500">
                         {inv.reorderPoint} PCS
                       </td>
-                      <td className="px-6 py-4">{getStatusBadge(inv.status)}</td>
-                      <td className="px-6 py-4 text-right">
-                        <Button
-                          size="sm"
-                          variant="outline"
+                      <td className="px-3 sm:px-4 py-3">{getStatusBadge(inv.status)}</td>
+                      <td className="px-3 sm:px-4 py-3 text-right whitespace-nowrap">
+                        <button
+                          type="button"
                           onClick={() => handleOpenScrap(inv)}
                           disabled={inv.availableQuantity <= 0}
-                          className="gap-1.5 text-xs text-rose-600 border-rose-200 hover:bg-rose-50 hover:border-rose-400 dark:border-rose-900/50 dark:text-rose-400 dark:hover:bg-rose-950/30"
+                          title="Déclarer une casse / rebut de stock (SAP MM 551)"
+                          className="flex h-8 w-8 items-center justify-center rounded-lg border border-rose-200 text-rose-600 hover:bg-rose-50 hover:border-rose-400 dark:border-rose-900/50 dark:text-rose-400 dark:hover:bg-rose-950/30 transition-colors ml-auto disabled:opacity-40 disabled:cursor-not-allowed"
                         >
-                          <Flame className="h-3.5 w-3.5" />
-                          Déclarer une Casse
-                        </Button>
+                          <Flame className="h-4 w-4" />
+                        </button>
                       </td>
                     </tr>
                   );

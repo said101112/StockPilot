@@ -170,25 +170,25 @@ export default function RequisitionsPage() {
           <table className="min-w-full text-left text-sm text-gray-600 dark:text-gray-300">
             <thead className="border-b border-gray-200 bg-gray-50/75 text-xs font-semibold uppercase tracking-wider text-gray-500 dark:border-gray-800 dark:bg-gray-800/50 dark:text-gray-400">
               <tr>
-                <th className="px-6 py-4">N° Demande</th>
-                <th className="px-6 py-4">Article & Référence</th>
-                <th className="px-6 py-4 text-center">Quantité Demandée</th>
-                <th className="px-6 py-4">Statut</th>
-                <th className="px-6 py-4">Motif / Justification</th>
-                <th className="px-6 py-4 text-right">Actions</th>
+                <th className="px-3 sm:px-4 py-3.5">N° Demande</th>
+                <th className="px-3 sm:px-4 py-3.5">Article & Référence</th>
+                <th className="px-3 sm:px-4 py-3.5 text-center">Quantité Demandée</th>
+                <th className="px-3 sm:px-4 py-3.5">Statut</th>
+                <th className="px-3 sm:px-4 py-3.5">Motif / Justification</th>
+                <th className="px-3 sm:px-4 py-3.5 text-right whitespace-nowrap">Actions</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100 dark:divide-gray-800">
               {loading ? (
                 <tr>
-                  <td colSpan={6} className="px-6 py-12 text-center text-gray-500">
+                  <td colSpan={6} className="px-4 py-12 text-center text-gray-500">
                     <RefreshCw className="mx-auto h-6 w-6 animate-spin text-brand-500 mb-2" />
                     Chargement des demandes d'achat...
                   </td>
                 </tr>
               ) : requisitions.length === 0 ? (
                 <tr>
-                  <td colSpan={6} className="px-6 py-12 text-center">
+                  <td colSpan={6} className="px-4 py-12 text-center">
                     <FilePlus className="mx-auto h-10 w-10 text-gray-300 dark:text-gray-600 mb-2" />
                     <p className="font-semibold text-gray-900 dark:text-white">Aucune demande d'achat</p>
                     <p className="text-xs text-gray-400 mt-1">
@@ -204,10 +204,10 @@ export default function RequisitionsPage() {
                       key={req.id}
                       className="hover:bg-gray-50/50 transition-colors dark:hover:bg-gray-800/30"
                     >
-                      <td className="px-6 py-4 font-mono font-bold text-gray-900 dark:text-white">
+                      <td className="px-3 sm:px-4 py-3 font-mono font-bold text-gray-900 dark:text-white">
                         {req.prNumber || req.requisitionNumber || `DA-${req.id.substring(0, 6).toUpperCase()}`}
                       </td>
-                      <td className="px-6 py-4">
+                      <td className="px-3 sm:px-4 py-3">
                         <div className="flex flex-col">
                           <span className="font-semibold text-gray-900 dark:text-white">
                             {product ? product.name : "Article"}
@@ -217,75 +217,71 @@ export default function RequisitionsPage() {
                           </span>
                         </div>
                       </td>
-                      <td className="px-6 py-4 text-center font-bold text-gray-900 dark:text-white font-mono">
+                      <td className="px-3 sm:px-4 py-3 text-center font-bold text-gray-900 dark:text-white font-mono">
                         {req.requestedQuantity} {product?.unitOfMeasure || "PCS"}
                       </td>
-                      <td className="px-6 py-4">{getStatusBadge(req.status)}</td>
-                      <td className="px-6 py-4 text-xs text-gray-500">
+                      <td className="px-3 sm:px-4 py-3">{getStatusBadge(req.status)}</td>
+                      <td className="px-3 sm:px-4 py-3 text-xs text-gray-500 max-w-xs truncate">
                         {req.justification || req.notes || "Réapprovisionnement standard"}
                       </td>
-                      <td className="px-6 py-4 text-right">
-                        <div className="flex items-center justify-end gap-2">
+                      <td className="px-3 sm:px-4 py-3 text-right whitespace-nowrap">
+                        <div className="flex items-center justify-end gap-1.5">
                           {req.status === "DRAFT" && (
                             <>
-                              <Button
-                                size="sm"
-                                variant="outline"
+                              <button
+                                type="button"
                                 onClick={() => handleSubmit(req.id)}
                                 disabled={actionLoading === req.id}
-                                className="gap-1.5 text-xs text-brand-600 border-brand-300 hover:bg-brand-50"
+                                title="Transmettre la demande pour validation"
+                                className="flex h-8 w-8 items-center justify-center rounded-lg bg-brand-600 hover:bg-brand-700 text-white shadow-sm transition-colors disabled:opacity-50"
                               >
                                 <Send className="h-3.5 w-3.5" />
-                                Transmettre
-                              </Button>
+                              </button>
                               <button
                                 type="button"
                                 onClick={() => setReqToDelete(req)}
                                 title="Supprimer la demande"
-                                className="p-1.5 rounded-lg border border-rose-200 dark:border-rose-900/50 text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/30 transition-colors"
+                                className="flex h-8 w-8 items-center justify-center rounded-lg border border-rose-200 dark:border-rose-900/50 text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/30 transition-colors"
                               >
                                 <Trash2 className="h-3.5 w-3.5" />
                               </button>
                             </>
                           )}
                           {req.status === "SUBMITTED" && (
-                            <Button
-                              size="sm"
-                              variant="primary"
+                            <button
+                              type="button"
                               onClick={() => handleApprove(req.id)}
                               disabled={actionLoading === req.id}
-                              className="gap-1.5 text-xs bg-emerald-600 hover:bg-emerald-700 text-white"
+                              title="Valider et approuver la demande"
+                              className="flex h-8 w-8 items-center justify-center rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white shadow-sm transition-colors disabled:opacity-50"
                             >
-                              <CheckCircle2 className="h-3.5 w-3.5" />
-                              Valider la demande
-                            </Button>
+                              <CheckCircle2 className="h-4 w-4" />
+                            </button>
                           )}
                           {req.status === "APPROVED" && (
-                            <Button
-                              size="sm"
-                              variant="primary"
+                            <button
+                              type="button"
                               onClick={() => openOrderModal(req)}
-                              className="gap-1.5 text-xs bg-brand-600 hover:bg-brand-700 text-white"
+                              title="Générer le Bon de Commande Fournisseur"
+                              className="flex h-8 w-8 items-center justify-center rounded-lg bg-brand-600 hover:bg-brand-700 text-white shadow-sm transition-colors"
                             >
-                              <ShoppingCart className="h-3.5 w-3.5" />
-                              Générer la Commande
-                            </Button>
+                              <ShoppingCart className="h-4 w-4" />
+                            </button>
                           )}
                           {req.status === "REJECTED" && (
                             <button
                               type="button"
                               onClick={() => setReqToDelete(req)}
                               title="Supprimer la demande rejetée"
-                              className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border border-rose-200 dark:border-rose-900/50 text-xs font-medium text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/30 transition-colors"
+                              className="flex h-8 w-8 items-center justify-center rounded-lg border border-rose-200 dark:border-rose-900/50 text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/30 transition-colors"
                             >
                               <Trash2 className="h-3.5 w-3.5" />
-                              <span>Supprimer</span>
                             </button>
                           )}
                           {req.status === "ORDERED" && (
                             <span className="inline-flex items-center gap-1 text-xs text-brand-600 font-semibold dark:text-brand-400">
                               <CheckCircle2 className="h-3.5 w-3.5" />
-                              Bon de commande émis
+                              Commandée
                             </span>
                           )}
                         </div>

@@ -5,7 +5,42 @@ import Input from "@/components/form/input/InputField";
 import Label from "@/components/form/Label";
 import { productsApi } from "../api/productsApi";
 import type { Product } from "../domain/types";
-import { Boxes, Barcode, DollarSign, CheckCircle, AlertCircle } from "lucide-react";
+import { Boxes, Barcode, DollarSign, CheckCircle, AlertCircle, Sparkles } from "lucide-react";
+
+export function generateSkuFromProductName(name: string): string {
+  if (!name || !name.trim()) return "";
+
+  // Supprimer les accents et caractères spéciaux
+  const clean = name
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toUpperCase()
+    .replace(/[^A-Z0-9\s]/g, " ")
+    .trim();
+
+  const words = clean.split(/\s+/).filter(Boolean);
+  if (words.length === 0) return "";
+
+  if (words.length === 1) {
+    const w = words[0];
+    const prefix = w.length > 5 ? w.substring(0, 5) : w;
+    return `${prefix}-001`;
+  }
+
+  if (words.length === 2) {
+    const w1 = words[0].length > 4 ? words[0].substring(0, 4) : words[0];
+    const w2 = words[1].length > 4 ? words[1].substring(0, 4) : words[1];
+    return `${w1}-${w2}`;
+  }
+
+  // 3 mots ou plus (ex: "Webcam Pro Ultra HD 4K" -> "WEB-PRO-4K")
+  const t1 = words[0].substring(0, 3);
+  const t2 = words[1].substring(0, 3);
+  const last = words[words.length - 1];
+  const t3 = /\d/.test(last) ? last.substring(0, 4) : words[2].substring(0, 3);
+
+  return `${t1}-${t2}-${t3}`;
+}
 
 interface Props {
   isOpen: boolean;
@@ -25,8 +60,29 @@ export default function CreateProductModal({ isOpen, onClose, onSuccess }: Props
     initialStock: "0",
     reorderPoint: "10",
   });
+  const [isSkuCustomized, setIsSkuCustomized] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  const handleNameChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const newName = e.target.value;
+    setFormData((prev) => {
+      const autoSku = !isSkuCustomized ? generateSkuFromProductName(newName) : prev.sku;
+      return {
+        ...prev,
+        name: newName,
+        sku: autoSku,
+      };
+    });
+  };
+
+  const handleSkuChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setIsSkuCustomized(true);
+    setFormData((prev) => ({
+      ...prev,
+      sku: e.target.value.toUpperCase(),
+    }));
+  };
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
     setFormData((prev) => ({
@@ -35,11 +91,12 @@ export default function CreateProductModal({ isOpen, onClose, onSuccess }: Props
     }));
   };
 
-  const generateRandomSku = () => {
-    const prefix = formData.category === "FINISHED_GOOD" ? "FG" : formData.category === "RAW_MATERIAL" ? "MP" : "PR";
-    const rand = Math.floor(1000 + Math.random() * 9000);
-    setFormData((prev) => ({ ...prev, sku: `${prefix}-${rand}` }));
+  const handleRegenerateSku = () => {
+    const auto = generateSkuFromProductName(formData.name);
+    setFormData((prev) => ({ ...prev, sku: auto }));
+    setIsSkuCustomized(false);
   };
+
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -81,6 +138,7 @@ export default function CreateProductModal({ isOpen, onClose, onSuccess }: Props
         initialStock: "0",
         reorderPoint: "10",
       });
+      setIsSkuCustomized(false);
 
       onSuccess(created);
       onClose();
@@ -122,9 +180,9 @@ export default function CreateProductModal({ isOpen, onClose, onSuccess }: Props
               id="name"
               name="name"
               type="text"
-              placeholder="Ex: Disque de Frein Ventilé, Câble Blindé..."
+              placeholder="Ex: Webcam Pro Ultra HD 4K, Disque SSD..."
               value={formData.name}
-              onChange={handleChange}
+              onChange={handleNameChange}
               required
             />
           </div>
@@ -136,10 +194,12 @@ export default function CreateProductModal({ isOpen, onClose, onSuccess }: Props
               <Label htmlFor="sku">Référence SKU *</Label>
               <button
                 type="button"
-                onClick={generateRandomSku}
-                className="text-[11px] font-semibold text-brand-600 hover:underline dark:text-brand-400"
+                onClick={handleRegenerateSku}
+                className="flex items-center gap-1 text-[11px] font-semibold text-teal-600 hover:text-teal-700 dark:text-teal-400"
+                title="Générer automatiquement la référence d'après le nom"
               >
-                Générer code
+                <Sparkles className="h-3 w-3" />
+                Générer depuis le nom
               </button>
             </div>
             <div className="relative mt-1">
@@ -147,13 +207,20 @@ export default function CreateProductModal({ isOpen, onClose, onSuccess }: Props
                 id="sku"
                 name="sku"
                 type="text"
-                placeholder="Ex: SKU-AUTO-101"
+                placeholder="Ex: WEB-PRO-4K (auto)"
                 value={formData.sku}
-                onChange={handleChange}
+                onChange={handleSkuChange}
                 required
+                className="font-mono uppercase font-bold text-teal-700 dark:text-teal-300"
               />
               <Barcode className="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
             </div>
+            {!isSkuCustomized && formData.sku && (
+              <p className="mt-1 text-[11px] text-teal-600 dark:text-teal-400 flex items-center gap-1 font-medium">
+                <Sparkles className="h-3 w-3 shrink-0" />
+                SKU généré automatiquement d'après le nom
+              </p>
+            )}
           </div>
 
           <div>

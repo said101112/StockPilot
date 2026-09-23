@@ -183,26 +183,26 @@ export default function GoodsReceiptPage() {
           <table className="min-w-full text-left text-sm text-gray-600 dark:text-gray-300">
             <thead className="border-b border-gray-200 bg-gray-50/75 text-xs font-semibold uppercase tracking-wider text-gray-500 dark:border-gray-800 dark:bg-gray-800/50 dark:text-gray-400">
               <tr>
-                <th className="px-6 py-4">N° Bon Réception</th>
-                <th className="px-6 py-4">Bon de Livraison (BL)</th>
-                <th className="px-6 py-4">Commande Rattachée</th>
-                <th className="px-6 py-4 text-center">Quantité Réceptionnée</th>
-                <th className="px-6 py-4">Remarques / Contrôle</th>
-                <th className="px-6 py-4">Date de Réception</th>
-                <th className="px-6 py-4 text-right">Actions</th>
+                <th className="px-3 sm:px-4 py-3.5">N° Bon Réception</th>
+                <th className="px-3 sm:px-4 py-3.5">Bon de Livraison (BL)</th>
+                <th className="px-3 sm:px-4 py-3.5">Commande Rattachée</th>
+                <th className="px-3 sm:px-4 py-3.5 text-center">Quantité Réceptionnée</th>
+                <th className="px-3 sm:px-4 py-3.5">Remarques / Contrôle</th>
+                <th className="px-3 sm:px-4 py-3.5">Date de Réception</th>
+                <th className="px-3 sm:px-4 py-3.5 text-right whitespace-nowrap">Actions</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100 dark:divide-gray-800">
               {loading ? (
                 <tr>
-                  <td colSpan={7} className="px-6 py-12 text-center text-gray-500">
+                  <td colSpan={7} className="px-4 py-12 text-center text-gray-500">
                     <RefreshCw className="mx-auto h-6 w-6 animate-spin text-teal-600 mb-2" />
                     Chargement des réceptions...
                   </td>
                 </tr>
               ) : receipts.length === 0 ? (
                 <tr>
-                  <td colSpan={7} className="px-6 py-12 text-center">
+                  <td colSpan={7} className="px-4 py-12 text-center">
                     <PackageCheck className="mx-auto h-10 w-10 text-gray-300 dark:text-gray-600 mb-2" />
                     <p className="font-semibold text-gray-900 dark:text-white">Aucune réception enregistrée</p>
                     <p className="text-xs text-gray-400 mt-1 max-w-sm mx-auto">
@@ -226,7 +226,7 @@ export default function GoodsReceiptPage() {
                       key={gr.id}
                       className="hover:bg-gray-50/50 transition-colors dark:hover:bg-gray-800/30"
                     >
-                      <td className="px-6 py-4 font-mono font-bold text-gray-900 dark:text-white">
+                      <td className="px-3 sm:px-4 py-3 font-mono font-bold text-gray-900 dark:text-white">
                         <button
                           type="button"
                           onClick={() => setDetailReceipt(gr)}
@@ -235,10 +235,10 @@ export default function GoodsReceiptPage() {
                           {gr.grNumber}
                         </button>
                       </td>
-                      <td className="px-6 py-4 font-mono text-xs font-semibold text-teal-700 dark:text-teal-400">
+                      <td className="px-3 sm:px-4 py-3 font-mono text-xs font-semibold text-teal-700 dark:text-teal-400">
                         {gr.deliveryNoteNumber}
                       </td>
-                      <td className="px-6 py-4">
+                      <td className="px-3 sm:px-4 py-3">
                         <div className="flex items-center gap-1.5 text-xs text-gray-700 dark:text-gray-300">
                           <ShoppingCart className="h-3.5 w-3.5 text-gray-400 shrink-0" />
                           <span className="font-mono font-semibold">
@@ -246,15 +246,15 @@ export default function GoodsReceiptPage() {
                           </span>
                         </div>
                       </td>
-                      <td className="px-6 py-4 text-center">
+                      <td className="px-3 sm:px-4 py-3 text-center">
                         <span className="inline-flex items-center rounded-md bg-teal-50 px-2.5 py-1 text-xs font-semibold text-teal-700 dark:bg-teal-950 dark:text-teal-300 font-mono">
                           {gr.items ? `${gr.items.length} ligne(s)` : "1 ligne"}
                         </span>
                       </td>
-                      <td className="px-6 py-4 text-xs text-gray-500 max-w-xs truncate">
+                      <td className="px-3 sm:px-4 py-3 text-xs text-gray-500 max-w-xs truncate">
                         {gr.notes || "Réception conforme au quai"}
                       </td>
-                      <td className="px-6 py-4 text-xs text-gray-600 dark:text-gray-400 font-medium">
+                      <td className="px-3 sm:px-4 py-3 text-xs text-gray-600 dark:text-gray-400 font-medium">
                         {new Date(gr.receivedAt).toLocaleDateString("fr-FR", {
                           day: "numeric",
                           month: "short",
@@ -263,16 +263,15 @@ export default function GoodsReceiptPage() {
                           minute: "2-digit",
                         })}
                       </td>
-                      <td className="px-6 py-4 text-right">
-                        <Button
-                          size="sm"
-                          variant="outline"
+                      <td className="px-3 sm:px-4 py-3 text-right whitespace-nowrap">
+                        <button
+                          type="button"
                           onClick={() => setDetailReceipt(gr)}
-                          className="gap-1.5 text-xs text-gray-700 hover:text-teal-600 dark:text-gray-300 dark:hover:text-teal-400"
+                          title="Consulter le détail du bon de réception"
+                          className="flex h-8 w-8 items-center justify-center rounded-lg border border-gray-200 dark:border-gray-700 text-gray-600 hover:text-teal-600 hover:border-teal-200 dark:text-gray-300 dark:hover:text-teal-400 transition-colors ml-auto"
                         >
-                          <Eye className="h-3.5 w-3.5" />
-                          Détails
-                        </Button>
+                          <Eye className="h-4 w-4" />
+                        </button>
                       </td>
                     </tr>
                   );

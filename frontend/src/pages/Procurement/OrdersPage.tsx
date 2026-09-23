@@ -146,25 +146,25 @@ export default function OrdersPage() {
           <table className="min-w-full text-left text-sm text-gray-600 dark:text-gray-300">
             <thead className="border-b border-gray-200 bg-gray-50/75 text-xs font-semibold uppercase tracking-wider text-gray-500 dark:border-gray-800 dark:bg-gray-800/50 dark:text-gray-400">
               <tr>
-                <th className="px-6 py-4">N° Commande</th>
-                <th className="px-6 py-4">Fournisseur</th>
-                <th className="px-6 py-4">Montant Total</th>
-                <th className="px-6 py-4">Statut</th>
-                <th className="px-6 py-4">Date de Livraison Prévue</th>
-                <th className="px-6 py-4 text-right">Actions</th>
+                <th className="px-3 sm:px-4 py-3.5">N° Commande</th>
+                <th className="px-3 sm:px-4 py-3.5">Fournisseur</th>
+                <th className="px-3 sm:px-4 py-3.5">Montant Total</th>
+                <th className="px-3 sm:px-4 py-3.5">Statut</th>
+                <th className="px-3 sm:px-4 py-3.5">Date Livraison Prévue</th>
+                <th className="px-3 sm:px-4 py-3.5 text-right whitespace-nowrap">Actions</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100 dark:divide-gray-800">
               {loading ? (
                 <tr>
-                  <td colSpan={6} className="px-6 py-12 text-center text-gray-500">
+                  <td colSpan={6} className="px-4 py-12 text-center text-gray-500">
                     <RefreshCw className="mx-auto h-6 w-6 animate-spin text-brand-500 mb-2" />
                     Chargement des commandes en cours...
                   </td>
                 </tr>
               ) : orders.length === 0 ? (
                 <tr>
-                  <td colSpan={6} className="px-6 py-12 text-center">
+                  <td colSpan={6} className="px-4 py-12 text-center">
                     <ShoppingBag className="mx-auto h-10 w-10 text-gray-300 dark:text-gray-600 mb-2" />
                     <p className="font-semibold text-gray-900 dark:text-white">Aucune commande d'achat</p>
                     <p className="text-xs text-gray-400 mt-1">
@@ -180,10 +180,10 @@ export default function OrdersPage() {
                       key={po.id}
                       className="hover:bg-gray-50/50 transition-colors dark:hover:bg-gray-800/30"
                     >
-                      <td className="px-6 py-4 font-mono font-bold text-gray-900 dark:text-white">
+                      <td className="px-3 sm:px-4 py-3 font-mono font-bold text-gray-900 dark:text-white">
                         {po.poNumber}
                       </td>
-                      <td className="px-6 py-4">
+                      <td className="px-3 sm:px-4 py-3">
                         <div className="flex items-center gap-2">
                           <Building2 className="h-4 w-4 text-gray-400 shrink-0" />
                           <span className="font-semibold text-gray-900 dark:text-white">
@@ -191,15 +191,15 @@ export default function OrdersPage() {
                           </span>
                         </div>
                       </td>
-                      <td className="px-6 py-4 font-mono font-bold text-brand-600 dark:text-brand-400">
+                      <td className="px-3 sm:px-4 py-3 font-mono font-bold text-brand-600 dark:text-brand-400">
                         {po.totalAmount.toLocaleString("fr-FR", {
                           minimumFractionDigits: 2,
                           maximumFractionDigits: 2,
                         })}{" "}
                         {po.currency || "EUR"}
                       </td>
-                      <td className="px-6 py-4">{getStatusBadge(po.status)}</td>
-                      <td className="px-6 py-4 text-xs font-medium text-gray-600 dark:text-gray-300">
+                      <td className="px-3 sm:px-4 py-3">{getStatusBadge(po.status)}</td>
+                      <td className="px-3 sm:px-4 py-3 text-xs font-medium text-gray-600 dark:text-gray-300">
                         {po.expectedDeliveryDate
                           ? new Date(po.expectedDeliveryDate).toLocaleDateString("fr-FR", {
                               day: "numeric",
@@ -208,64 +208,63 @@ export default function OrdersPage() {
                             })
                           : "À convenir"}
                       </td>
-                      <td className="px-6 py-4 text-right">
-                        <div className="flex items-center justify-end gap-2">
+                      <td className="px-3 sm:px-4 py-3 text-right whitespace-nowrap">
+                        <div className="flex items-center justify-end gap-1.5">
                           {po.status === "DRAFT" && (
                             <>
-                              <Button
-                                size="sm"
-                                variant="primary"
+                              <button
+                                type="button"
                                 onClick={() => handleIssue(po.id)}
                                 disabled={actionLoading === po.id}
-                                className="gap-1.5 text-xs bg-brand-600 hover:bg-brand-700 text-white"
+                                title="Envoyer la commande au fournisseur"
+                                className="flex h-8 w-8 items-center justify-center rounded-lg bg-brand-600 hover:bg-brand-700 text-white shadow-sm transition-colors disabled:opacity-50"
                               >
                                 <Send className="h-3.5 w-3.5" />
-                                Envoyer
-                              </Button>
+                              </button>
                               <button
                                 type="button"
                                 onClick={() => setOrderToCancel(po)}
                                 title="Annuler la commande"
-                                className="p-1.5 rounded-lg border border-rose-200 dark:border-rose-900/50 text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/30 transition-colors"
+                                className="flex h-8 w-8 items-center justify-center rounded-lg border border-rose-200 dark:border-rose-900/50 text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/30 transition-colors"
                               >
                                 <Ban className="h-3.5 w-3.5" />
                               </button>
                             </>
                           )}
                           {po.status === "ISSUED" && (
-                            <div className="flex items-center justify-end gap-1.5">
-                              <Button
-                                size="sm"
+                            <>
+                              <button
+                                type="button"
                                 onClick={() => setOrderToReceive(po)}
-                                className="gap-1.5 text-xs bg-teal-600 hover:bg-teal-700 text-white"
+                                title="Réceptionner la commande au quai"
+                                className="flex h-8 w-8 items-center justify-center rounded-lg bg-teal-600 hover:bg-teal-700 text-white shadow-sm transition-colors"
                               >
-                                <Truck className="h-3.5 w-3.5" />
-                                Réceptionner
-                              </Button>
+                                <Truck className="h-4 w-4" />
+                              </button>
                               <button
                                 type="button"
                                 onClick={() => setOrderToCancel(po)}
                                 title="Annuler la commande en cours"
-                                className="p-1.5 rounded-lg border border-rose-200 dark:border-rose-900/50 text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/30 transition-colors"
+                                className="flex h-8 w-8 items-center justify-center rounded-lg border border-rose-200 dark:border-rose-900/50 text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/30 transition-colors"
                               >
                                 <Ban className="h-3.5 w-3.5" />
                               </button>
-                            </div>
+                            </>
                           )}
                           {po.status === "PARTIALLY_RECEIVED" && (
-                            <Button
-                              size="sm"
+                            <button
+                              type="button"
                               onClick={() => setOrderToReceive(po)}
-                              className="gap-1.5 text-xs bg-amber-600 hover:bg-amber-700 text-white"
+                              title="Solder la réception au quai"
+                              className="flex h-8 w-8 items-center justify-center rounded-lg bg-amber-600 hover:bg-amber-700 text-white shadow-sm transition-colors"
                             >
-                              <Truck className="h-3.5 w-3.5" />
-                              Solder Réception
-                            </Button>
+                              <Truck className="h-4 w-4" />
+                            </button>
                           )}
                           {po.status === "COMPLETED" && (
                             <span className="inline-flex items-center gap-1 text-xs text-emerald-600 dark:text-emerald-400 font-semibold">
                               <Check className="h-3.5 w-3.5" />
-                              Livrée 100%
+                              100%
                             </span>
                           )}
                           {po.status === "CANCELLED" && (

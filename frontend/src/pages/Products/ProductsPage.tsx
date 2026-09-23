@@ -193,12 +193,12 @@ export default function ProductsPage() {
           <table className="w-full text-left text-sm text-gray-600 dark:text-gray-300">
             <thead className="border-b border-gray-100 bg-gray-50/75 text-xs uppercase tracking-wider text-gray-400 dark:border-gray-800 dark:bg-gray-800/50">
               <tr>
-                <th className="px-4 py-3.5 sm:px-5">Référence SKU</th>
-                <th className="px-4 py-3.5 sm:px-5">Désignation</th>
-                <th className="px-4 py-3.5 sm:px-5">Catégorie</th>
-                <th className="px-4 py-3.5 sm:px-5">Prix Unitaire</th>
-                <th className="px-4 py-3.5 sm:px-5">Unité</th>
-                <th className="px-4 py-3.5 sm:px-5 text-right whitespace-nowrap">Actions</th>
+                <th className="px-3 sm:px-4 py-3.5">Référence SKU</th>
+                <th className="px-3 sm:px-4 py-3.5">Désignation</th>
+                <th className="px-3 sm:px-4 py-3.5">Catégorie</th>
+                <th className="px-3 sm:px-4 py-3.5">Prix Unitaire</th>
+                <th className="px-3 sm:px-4 py-3.5">Unité</th>
+                <th className="px-3 sm:px-4 py-3.5 text-right whitespace-nowrap">Actions</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100 dark:divide-gray-800">
@@ -235,7 +235,7 @@ export default function ProductsPage() {
                     key={product.id}
                     className="transition-colors hover:bg-gray-50/50 dark:hover:bg-gray-800/50"
                   >
-                    <td className="px-4 py-3.5 sm:px-5">
+                    <td className="px-3 sm:px-4 py-3">
                       <div className="flex items-center gap-2">
                         <Barcode className="h-4 w-4 text-gray-400" />
                         <span className="font-mono font-bold text-gray-900 dark:text-white">
@@ -243,50 +243,48 @@ export default function ProductsPage() {
                         </span>
                       </div>
                     </td>
-                    <td className="px-4 py-3.5 sm:px-5">
+                    <td className="px-3 sm:px-4 py-3">
                       <p className="font-semibold text-gray-900 dark:text-white">
                         {product.name}
                       </p>
                       {product.description && (
-                        <p className="text-xs text-gray-400 line-clamp-1 max-w-[280px]">
+                        <p className="text-xs text-gray-400 line-clamp-1 max-w-[240px]">
                           {product.description}
                         </p>
                       )}
                     </td>
-                    <td className="px-4 py-3.5 sm:px-5">
+                    <td className="px-3 sm:px-4 py-3">
                       {getCategoryBadge(product.category)}
                     </td>
-                    <td className="px-4 py-3.5 sm:px-5 font-mono font-bold text-gray-900 dark:text-white">
+                    <td className="px-3 sm:px-4 py-3 font-mono font-bold text-gray-900 dark:text-white">
                       {product.price.toLocaleString("fr-FR", {
                         minimumFractionDigits: 2,
                         maximumFractionDigits: 2,
                       })}{" "}
                       {product.currency || "EUR"}
                     </td>
-                    <td className="px-4 py-3.5 sm:px-5">
+                    <td className="px-3 sm:px-4 py-3">
                       <span className="inline-flex items-center rounded-md bg-gray-100 px-2 py-1 text-xs font-semibold text-gray-700 dark:bg-gray-800 dark:text-gray-300">
                         {product.unitOfMeasure || "PCS"}
                       </span>
                     </td>
-                    <td className="px-4 py-3.5 sm:px-5 text-right whitespace-nowrap">
-                      <div className="flex items-center justify-end gap-2">
+                    <td className="px-3 sm:px-4 py-3 text-right whitespace-nowrap">
+                      <div className="flex items-center justify-end gap-1.5">
                         <button
                           type="button"
                           onClick={() => setProductToEdit(product)}
                           title="Modifier cet article"
-                          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-gray-200 dark:border-gray-700 text-xs font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+                          className="flex h-8 w-8 items-center justify-center rounded-lg border border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-300 hover:bg-blue-50 hover:text-blue-600 hover:border-blue-200 dark:hover:bg-blue-950/40 dark:hover:text-blue-400 transition-colors"
                         >
-                          <Pencil className="h-3.5 w-3.5 text-blue-500" />
-                          <span>Modifier</span>
+                          <Pencil className="h-4 w-4" />
                         </button>
                         <button
                           type="button"
                           onClick={() => setProductToDelete(product)}
                           title="Supprimer cet article"
-                          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-rose-200 dark:border-rose-900/50 text-xs font-medium text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/30 transition-colors"
+                          className="flex h-8 w-8 items-center justify-center rounded-lg border border-rose-200 dark:border-rose-900/50 text-rose-600 dark:text-rose-400 hover:bg-rose-50 hover:border-rose-300 dark:hover:bg-rose-950/30 transition-colors"
                         >
-                          <Trash2 className="h-3.5 w-3.5" />
-                          <span>Supprimer</span>
+                          <Trash2 className="h-4 w-4" />
                         </button>
                       </div>
                     </td>

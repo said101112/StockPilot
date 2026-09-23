@@ -189,13 +189,13 @@ export default function SuppliersPage() {
           <table className="w-full text-left text-sm text-gray-600 dark:text-gray-300">
             <thead className="border-b border-gray-100 bg-gray-50/75 text-xs uppercase tracking-wider text-gray-400 dark:border-gray-800 dark:bg-gray-800/50">
               <tr>
-                <th className="px-4 py-3.5 sm:px-5">Raison Sociale</th>
-                <th className="px-4 py-3.5 sm:px-5">N° TVA</th>
-                <th className="px-4 py-3.5 sm:px-5">Conditions Règlement</th>
-                <th className="px-4 py-3.5 sm:px-5">Contact</th>
-                <th className="px-4 py-3.5 sm:px-5">Adresse</th>
-                <th className="px-4 py-3.5 sm:px-5">Devise</th>
-                <th className="px-4 py-3.5 sm:px-5 text-right whitespace-nowrap">Actions</th>
+                <th className="px-3 sm:px-4 py-3.5">Raison Sociale</th>
+                <th className="px-3 sm:px-4 py-3.5">N° TVA</th>
+                <th className="px-3 sm:px-4 py-3.5">Conditions Règlement</th>
+                <th className="px-3 sm:px-4 py-3.5">Contact</th>
+                <th className="px-3 sm:px-4 py-3.5">Adresse</th>
+                <th className="px-3 sm:px-4 py-3.5">Devise</th>
+                <th className="px-3 sm:px-4 py-3.5 text-right whitespace-nowrap">Actions</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100 dark:divide-gray-800">
@@ -230,7 +230,7 @@ export default function SuppliersPage() {
                     key={supplier.id}
                     className="transition-colors hover:bg-gray-50/50 dark:hover:bg-gray-800/50"
                   >
-                    <td className="px-4 py-3.5 sm:px-5">
+                    <td className="px-3 sm:px-4 py-3">
                       <div className="flex items-center gap-3">
                         <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-brand-50 font-bold text-brand-600 dark:bg-brand-950/40 dark:text-brand-400">
                           {supplier.name.substring(0, 2).toUpperCase()}
@@ -242,7 +242,7 @@ export default function SuppliersPage() {
                         </div>
                       </div>
                     </td>
-                    <td className="px-4 py-3.5 sm:px-5 font-mono text-xs">
+                    <td className="px-3 sm:px-4 py-3 font-mono text-xs">
                       {supplier.taxNumber ? (
                         <span className="rounded bg-gray-100 px-2 py-0.5 font-medium text-gray-700 dark:bg-gray-800 dark:text-gray-300">
                           {supplier.taxNumber}
@@ -251,16 +251,16 @@ export default function SuppliersPage() {
                         <span className="text-gray-400 italic">Non renseigné</span>
                       )}
                     </td>
-                    <td className="px-4 py-3.5 sm:px-5">
+                    <td className="px-3 sm:px-4 py-3">
                       {getPaymentTermBadge(supplier.paymentTerms)}
                     </td>
-                    <td className="px-4 py-3.5 sm:px-5">
+                    <td className="px-3 sm:px-4 py-3">
                       <div className="space-y-1">
                         <div className="flex items-center gap-1.5 text-xs">
                           <Mail className="h-3.5 w-3.5 text-gray-400 shrink-0" />
                           <a
                             href={`mailto:${supplier.email}`}
-                            className="text-brand-600 hover:underline dark:text-brand-400 truncate max-w-[180px]"
+                            className="text-brand-600 hover:underline dark:text-brand-400 truncate max-w-[170px]"
                           >
                             {supplier.email}
                           </a>
@@ -273,36 +273,34 @@ export default function SuppliersPage() {
                         )}
                       </div>
                     </td>
-                    <td className="px-4 py-3.5 sm:px-5">
+                    <td className="px-3 sm:px-4 py-3">
                       <div className="flex items-center gap-1.5 text-xs text-gray-500">
                         <MapPin className="h-3.5 w-3.5 text-gray-400 shrink-0" />
-                        <span className="truncate max-w-[160px]">
+                        <span className="truncate max-w-[150px]">
                           {supplier.address || "Non renseignée"}
                         </span>
                       </div>
                     </td>
-                    <td className="px-4 py-3.5 sm:px-5">
+                    <td className="px-3 sm:px-4 py-3">
                       <Badge color="light">{supplier.currency || "EUR"}</Badge>
                     </td>
-                    <td className="px-4 py-3.5 sm:px-5 text-right whitespace-nowrap">
-                      <div className="flex items-center justify-end gap-2">
+                    <td className="px-3 sm:px-4 py-3 text-right whitespace-nowrap">
+                      <div className="flex items-center justify-end gap-1.5">
                         <button
                           type="button"
                           onClick={() => setSupplierToEdit(supplier)}
                           title="Modifier ce fournisseur"
-                          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-gray-200 dark:border-gray-700 text-xs font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+                          className="flex h-8 w-8 items-center justify-center rounded-lg border border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-300 hover:bg-blue-50 hover:text-blue-600 hover:border-blue-200 dark:hover:bg-blue-950/40 dark:hover:text-blue-400 transition-colors"
                         >
-                          <Pencil className="h-3.5 w-3.5 text-blue-500" />
-                          <span>Modifier</span>
+                          <Pencil className="h-4 w-4" />
                         </button>
                         <button
                           type="button"
                           onClick={() => setSupplierToDelete(supplier)}
                           title="Supprimer ce fournisseur"
-                          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-rose-200 dark:border-rose-900/50 text-xs font-medium text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/30 transition-colors"
+                          className="flex h-8 w-8 items-center justify-center rounded-lg border border-rose-200 dark:border-rose-900/50 text-rose-600 dark:text-rose-400 hover:bg-rose-50 hover:border-rose-300 dark:hover:bg-rose-950/30 transition-colors"
                         >
-                          <Trash2 className="h-3.5 w-3.5" />
-                          <span>Supprimer</span>
+                          <Trash2 className="h-4 w-4" />
                         </button>
                       </div>
                     </td>
