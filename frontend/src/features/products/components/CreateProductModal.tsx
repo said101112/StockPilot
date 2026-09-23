@@ -6,7 +6,8 @@ import Label from "@/components/form/Label";
 import { productsApi } from "../api/productsApi";
 import type { Product } from "../domain/types";
 import { Boxes, Barcode, DollarSign, CheckCircle, AlertCircle, Sparkles, Tag } from "lucide-react";
-import { PRODUCT_TAXONOMY_GROUPS, PRODUCT_TAXONOMY, getCategoryInfo } from "../domain/taxonomy";
+import { PRODUCT_TAXONOMY, getCategoryInfo } from "../domain/taxonomy";
+import CategorySelect from "./CategorySelect";
 
 export function generateSkuFromProductName(name: string): string {
   if (!name || !name.trim()) return "";
@@ -243,31 +244,19 @@ export default function CreateProductModal({ isOpen, onClose, onSuccess }: Props
           </div>
 
           <div>
-            <div className="flex items-center justify-between">
+            <div className="flex items-center justify-between mb-1">
               <Label htmlFor="category">Taxonomie / Catégorie d'Article *</Label>
               <span className="text-[11px] text-gray-400 flex items-center gap-1">
                 <Tag className="h-3 w-3" />
                 {PRODUCT_TAXONOMY.length} catégories
               </span>
             </div>
-            <select
+            <CategorySelect
               id="category"
-              name="category"
               value={formData.category}
-              onChange={handleChange}
-              className="mt-1 block w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 shadow-sm focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500 dark:border-gray-700 dark:bg-gray-800 dark:text-white"
-            >
-              {PRODUCT_TAXONOMY_GROUPS.map((group) => (
-                <optgroup key={group} label={`── ${group} ──`}>
-                  {PRODUCT_TAXONOMY.filter((c) => c.group === group).map((c) => (
-                    <option key={c.code} value={c.code}>
-                      {c.label}
-                    </option>
-                  ))}
-                </optgroup>
-              ))}
-            </select>
-            <p className="mt-1 text-[11px] text-gray-500 dark:text-gray-400 italic">
+              onChange={(newCat) => setFormData((prev) => ({ ...prev, category: newCat }))}
+            />
+            <p className="mt-1.5 text-[11px] text-gray-500 dark:text-gray-400 italic">
               {getCategoryInfo(formData.category).description}
             </p>
           </div>
