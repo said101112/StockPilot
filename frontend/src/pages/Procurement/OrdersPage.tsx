@@ -6,6 +6,7 @@ import { suppliersApi } from "@/features/suppliers/api/suppliersApi";
 import type { PurchaseOrder } from "@/features/procurement/domain/types";
 import type { Supplier } from "@/features/suppliers/domain/types";
 import { ConfirmModal } from "@/components/common/ConfirmModal";
+import CreateGoodsReceiptModal from "@/features/goods-receipt/components/CreateGoodsReceiptModal";
 import { useToast } from "@/shared/context/ToastContext";
 import {
   ShoppingCart,
@@ -15,7 +16,10 @@ import {
   ShoppingBag,
   Building2,
   Ban,
+  Truck,
+  Check,
 } from "lucide-react";
+
 
 export default function OrdersPage() {
   const [orders, setOrders] = useState<PurchaseOrder[]>([]);
@@ -27,6 +31,9 @@ export default function OrdersPage() {
   // Cancel order modal
   const [orderToCancel, setOrderToCancel] = useState<PurchaseOrder | null>(null);
   const [cancelLoading, setCancelLoading] = useState(false);
+
+  // Goods receipt modal
+  const [orderToReceive, setOrderToReceive] = useState<PurchaseOrder | null>(null);
 
   const { showSuccess, showError } = useToast();
 
@@ -226,24 +233,44 @@ export default function OrdersPage() {
                             </>
                           )}
                           {po.status === "ISSUED" && (
-                            <button
-                              type="button"
-                              onClick={() => setOrderToCancel(po)}
-                              title="Annuler la commande en cours"
-                              className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border border-rose-200 dark:border-rose-900/50 text-xs font-medium text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/30 transition-colors"
+                            <div className="flex items-center justify-end gap-1.5">
+                              <Button
+                                size="sm"
+                                onClick={() => setOrderToReceive(po)}
+                                className="gap-1.5 text-xs bg-teal-600 hover:bg-teal-700 text-white"
+                              >
+                                <Truck className="h-3.5 w-3.5" />
+                                Réceptionner
+                              </Button>
+                              <button
+                                type="button"
+                                onClick={() => setOrderToCancel(po)}
+                                title="Annuler la commande en cours"
+                                className="p-1.5 rounded-lg border border-rose-200 dark:border-rose-900/50 text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/30 transition-colors"
+                              >
+                                <Ban className="h-3.5 w-3.5" />
+                              </button>
+                            </div>
+                          )}
+                          {po.status === "PARTIALLY_RECEIVED" && (
+                            <Button
+                              size="sm"
+                              onClick={() => setOrderToReceive(po)}
+                              className="gap-1.5 text-xs bg-amber-600 hover:bg-amber-700 text-white"
                             >
-                              <Ban className="h-3.5 w-3.5" />
-                              <span>Annuler</span>
-                            </button>
+                              <Truck className="h-3.5 w-3.5" />
+                              Solder Réception
+                            </Button>
+                          )}
+                          {po.status === "COMPLETED" && (
+                            <span className="inline-flex items-center gap-1 text-xs text-emerald-600 dark:text-emerald-400 font-semibold">
+                              <Check className="h-3.5 w-3.5" />
+                              Livrée 100%
+                            </span>
                           )}
                           {po.status === "CANCELLED" && (
                             <span className="text-xs text-rose-500 font-medium">
                               Annulée
-                            </span>
-                          )}
-                          {(po.status === "PARTIALLY_RECEIVED" || po.status === "COMPLETED") && (
-                            <span className="text-xs text-gray-400 italic">
-                              Réception en cours
                             </span>
                           )}
                         </div>
@@ -268,6 +295,18 @@ export default function OrdersPage() {
         onConfirm={handleCancelConfirm}
         onCancel={() => setOrderToCancel(null)}
       />
+
+      {/* Goods Receipt Modal */}
+      <CreateGoodsReceiptModal
+        isOpen={!!orderToReceive}
+        preselectedOrderId={orderToReceive?.id}
+        onClose={() => setOrderToReceive(null)}
+        onSuccess={() => {
+          setOrderToReceive(null);
+          fetchOrders();
+        }}
+      />
     </div>
   );
 }
+

@@ -26,9 +26,11 @@ export interface PurchaseOrderItem {
   sku: string;
   orderedQuantity: number;
   receivedQuantity: number;
+  remainingQuantity?: number;
   unitPrice: number;
   totalPrice: number;
 }
+
 
 export interface PurchaseOrder {
   id: string;
