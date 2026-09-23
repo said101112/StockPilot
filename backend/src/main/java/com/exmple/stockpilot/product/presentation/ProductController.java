@@ -12,8 +12,10 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import java.util.Arrays;
 import java.util.List;
 import java.util.UUID;
+import com.exmple.stockpilot.product.domain.valueobject.ProductCategory;
 
 import com.exmple.stockpilot.product.application.port.in.DeleteProductUseCase;
 import com.exmple.stockpilot.product.application.port.in.UpdateProductUseCase;
@@ -65,6 +67,14 @@ public class ProductController {
     @GetMapping
     public ResponseEntity<List<ProductResponse>> getAllProducts() {
         return ResponseEntity.ok(getProductsUseCase.getAllProducts());
+    }
+
+    @GetMapping("/categories")
+    public ResponseEntity<List<ProductCategoryDto>> getCategories() {
+        List<ProductCategoryDto> list = Arrays.stream(ProductCategory.values())
+                .map(c -> new ProductCategoryDto(c.name(), c.getLabel(), c.getGroup(), c.getDescription()))
+                .toList();
+        return ResponseEntity.ok(list);
     }
 
     @GetMapping("/{id}")

@@ -1,12 +1,12 @@
 import { useEffect, useState } from "react";
 import Button from "@/components/ui/button/Button";
-import Badge from "@/components/ui/badge/Badge";
 import { productsApi } from "@/features/products/api/productsApi";
 import type { Product } from "@/features/products/domain/types";
 import CreateProductModal from "@/features/products/components/CreateProductModal";
 import EditProductModal from "@/features/products/components/EditProductModal";
 import { ConfirmModal } from "@/components/common/ConfirmModal";
 import { useToast } from "@/shared/context/ToastContext";
+import { PRODUCT_TAXONOMY_GROUPS, PRODUCT_TAXONOMY, getCategoryInfo } from "@/features/products/domain/taxonomy";
 import {
   Boxes,
   Plus,
@@ -75,18 +75,16 @@ export default function ProductsPage() {
   });
 
   const getCategoryBadge = (cat: string) => {
-    switch (cat) {
-      case "FINISHED_GOOD":
-        return <Badge color="success">Produit Fini</Badge>;
-      case "RAW_MATERIAL":
-        return <Badge color="primary">Matière Première</Badge>;
-      case "SEMI_FINISHED":
-        return <Badge color="warning">Semi-Fini</Badge>;
-      case "SPARE_PART":
-        return <Badge color="error">Pièce de Rechange</Badge>;
-      default:
-        return <Badge color="light">{cat || "Général"}</Badge>;
-    }
+    const info = getCategoryInfo(cat);
+    return (
+      <span
+        className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-xs font-medium border ${info.badgeClass}`}
+        title={`${info.group} : ${info.description}`}
+      >
+        <span className="h-1.5 w-1.5 rounded-full bg-current opacity-70" />
+        {info.label}
+      </span>
+    );
   };
 
   return (
@@ -102,7 +100,7 @@ export default function ProductsPage() {
               Catalogue Articles
             </h1>
             <p className="text-sm text-gray-500 dark:text-gray-400">
-              Référentiel des articles et spécifications techniques
+              Référentiel des articles et spécifications techniques (taxonomie multi-catégories)
             </p>
           </div>
         </div>
@@ -141,19 +139,19 @@ export default function ProductsPage() {
 
         <div className="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm dark:border-gray-800 dark:bg-gray-900">
           <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider">
-            Matières Premières
+            Intrants & Fabrication
           </p>
           <p className="mt-2 text-3xl font-extrabold text-blue-600 dark:text-blue-400">
-            {products.filter((p) => p.category === "RAW_MATERIAL").length}
+            {products.filter((p) => p.category === "RAW_MATERIAL" || p.category === "SEMI_FINISHED").length}
           </p>
         </div>
 
         <div className="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm dark:border-gray-800 dark:bg-gray-900">
           <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider">
-            Pièces de Rechange
+            MRO, Équipements & Support
           </p>
           <p className="mt-2 text-3xl font-extrabold text-amber-600 dark:text-amber-400">
-            {products.filter((p) => p.category === "SPARE_PART").length}
+            {products.filter((p) => p.category !== "FINISHED_GOOD" && p.category !== "RAW_MATERIAL" && p.category !== "SEMI_FINISHED").length}
           </p>
         </div>
       </div>
@@ -172,17 +170,25 @@ export default function ProductsPage() {
         </div>
 
         <div className="flex items-center gap-3">
-          <span className="text-xs text-gray-500 font-medium">Catégorie:</span>
+          <span className="text-xs text-gray-500 font-medium whitespace-nowrap">Taxonomie:</span>
           <select
             value={categoryFilter}
             onChange={(e) => setCategoryFilter(e.target.value)}
             className="rounded-xl border border-gray-200 bg-gray-50/50 px-3 py-2 text-xs font-semibold text-gray-700 focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-200"
           >
-            <option value="ALL">Toutes les catégories</option>
-            <option value="FINISHED_GOOD">Produits Finis</option>
-            <option value="RAW_MATERIAL">Matières Premières</option>
-            <option value="SEMI_FINISHED">Semi-Finis</option>
-            <option value="SPARE_PART">Pièces de Rechange</option>
+            <option value="ALL">Toutes les catégories ({products.length})</option>
+            {PRODUCT_TAXONOMY_GROUPS.map((group) => (
+              <optgroup key={group} label={`── ${group} ──`}>
+                {PRODUCT_TAXONOMY.filter((c) => c.group === group).map((c) => {
+                  const count = products.filter((p) => p.category === c.code).length;
+                  return (
+                    <option key={c.code} value={c.code}>
+                      {c.label} ({count})
+                    </option>
+                  );
+                })}
+              </optgroup>
+            ))}
           </select>
         </div>
       </div>

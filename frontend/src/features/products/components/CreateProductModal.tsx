@@ -1,11 +1,12 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Modal } from "@/components/ui/modal";
 import Button from "@/components/ui/button/Button";
 import Input from "@/components/form/input/InputField";
 import Label from "@/components/form/Label";
 import { productsApi } from "../api/productsApi";
 import type { Product } from "../domain/types";
-import { Boxes, Barcode, DollarSign, CheckCircle, AlertCircle, Sparkles } from "lucide-react";
+import { Boxes, Barcode, DollarSign, CheckCircle, AlertCircle, Sparkles, Tag } from "lucide-react";
+import { PRODUCT_TAXONOMY_GROUPS, PRODUCT_TAXONOMY, getCategoryInfo } from "../domain/taxonomy";
 
 export function generateSkuFromProductName(name: string): string {
   if (!name || !name.trim()) return "";
@@ -63,6 +64,24 @@ export default function CreateProductModal({ isOpen, onClose, onSuccess }: Props
   const [isSkuCustomized, setIsSkuCustomized] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (isOpen) {
+      setFormData({
+        name: "",
+        description: "",
+        sku: "",
+        price: "0",
+        currency: "EUR",
+        unitOfMeasure: "PCS",
+        category: "FINISHED_GOOD",
+        initialStock: "0",
+        reorderPoint: "10",
+      });
+      setIsSkuCustomized(false);
+      setError(null);
+    }
+  }, [isOpen]);
 
   const handleNameChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const newName = e.target.value;
@@ -224,7 +243,13 @@ export default function CreateProductModal({ isOpen, onClose, onSuccess }: Props
           </div>
 
           <div>
-            <Label htmlFor="category">Catégorie</Label>
+            <div className="flex items-center justify-between">
+              <Label htmlFor="category">Taxonomie / Catégorie d'Article *</Label>
+              <span className="text-[11px] text-gray-400 flex items-center gap-1">
+                <Tag className="h-3 w-3" />
+                {PRODUCT_TAXONOMY.length} catégories
+              </span>
+            </div>
             <select
               id="category"
               name="category"
@@ -232,11 +257,19 @@ export default function CreateProductModal({ isOpen, onClose, onSuccess }: Props
               onChange={handleChange}
               className="mt-1 block w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 shadow-sm focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500 dark:border-gray-700 dark:bg-gray-800 dark:text-white"
             >
-              <option value="FINISHED_GOOD">Produit Fini</option>
-              <option value="RAW_MATERIAL">Matière Première</option>
-              <option value="SEMI_FINISHED">Semi-Fini</option>
-              <option value="SPARE_PART">Pièce de Rechange</option>
+              {PRODUCT_TAXONOMY_GROUPS.map((group) => (
+                <optgroup key={group} label={`── ${group} ──`}>
+                  {PRODUCT_TAXONOMY.filter((c) => c.group === group).map((c) => (
+                    <option key={c.code} value={c.code}>
+                      {c.label}
+                    </option>
+                  ))}
+                </optgroup>
+              ))}
             </select>
+            <p className="mt-1 text-[11px] text-gray-500 dark:text-gray-400 italic">
+              {getCategoryInfo(formData.category).description}
+            </p>
           </div>
         </div>
 
