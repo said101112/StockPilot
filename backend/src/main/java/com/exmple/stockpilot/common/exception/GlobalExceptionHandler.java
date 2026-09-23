@@ -11,12 +11,12 @@ import org.springframework.web.bind.annotation.RestControllerAdvice;
 public class GlobalExceptionHandler {
 
     // 404 NOT FOUND : Quand une ressource (Supplier, Product, Warehouse...) n'existe pas
-    @ExceptionHandler(SupplierNotFoundException.class)
-    public ResponseEntity<ErrorResponse> handleSupplierNotFound(SupplierNotFoundException ex, HttpServletRequest request) {
+    @ExceptionHandler({SupplierNotFoundException.class, java.util.NoSuchElementException.class})
+    public ResponseEntity<ErrorResponse> handleNotFound(RuntimeException ex, HttpServletRequest request) {
         ErrorResponse error = ErrorResponse.of(
                 HttpStatus.NOT_FOUND.value(),
                 HttpStatus.NOT_FOUND.getReasonPhrase(),
-                ex.getMessage(),
+                ex.getMessage() != null ? ex.getMessage() : "Ressource introuvable",
                 request.getRequestURI()
         );
         return ResponseEntity.status(HttpStatus.NOT_FOUND).body(error);
@@ -32,6 +32,18 @@ public class GlobalExceptionHandler {
                 request.getRequestURI()
         );
         return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(error);
+    }
+
+    // 409 CONFLICT : Contraintes d'intégrité de la base de données (ex: suppression d'un article lié à des stocks ou commandes)
+    @ExceptionHandler(org.springframework.dao.DataIntegrityViolationException.class)
+    public ResponseEntity<ErrorResponse> handleDataIntegrity(org.springframework.dao.DataIntegrityViolationException ex, HttpServletRequest request) {
+        ErrorResponse error = ErrorResponse.of(
+                HttpStatus.CONFLICT.value(),
+                "Conflit d'intégrité",
+                "Action impossible : cet élément est actuellement lié à d'autres données (stocks, commandes ou réceptions).",
+                request.getRequestURI()
+        );
+        return ResponseEntity.status(HttpStatus.CONFLICT).body(error);
     }
 
     // 500 INTERNAL SERVER ERROR : Pour toute erreur inattendue

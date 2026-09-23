@@ -53,6 +53,11 @@ public class PurchaseRequisitionPersistenceAdapter implements PurchaseRequisitio
                 .toList();
     }
 
+    @Override
+    public void deleteById(PurchaseRequisitionId id) {
+        springDataPurchaseRequisitionRepository.deleteById(id.value());
+    }
+
     private PurchaseRequisitionJpaEntity toEntity(PurchaseRequisition pr) {
         return new PurchaseRequisitionJpaEntity(
                 pr.getId().value(),

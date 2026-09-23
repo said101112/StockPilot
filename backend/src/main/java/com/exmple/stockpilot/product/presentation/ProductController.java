@@ -15,6 +15,11 @@ import org.springframework.web.bind.annotation.RestController;
 import java.util.List;
 import java.util.UUID;
 
+import com.exmple.stockpilot.product.application.port.in.DeleteProductUseCase;
+import com.exmple.stockpilot.product.application.port.in.UpdateProductUseCase;
+import org.springframework.web.bind.annotation.DeleteMapping;
+import org.springframework.web.bind.annotation.PutMapping;
+
 /**
  * Adaptateur Primaire (Driving Adapter) exposant l'API REST pour les Articles.
  * Rôle utilisateur : Administrateur Référentiel (Master Data Admin) ou tout utilisateur consultant le catalogue.
@@ -25,19 +30,36 @@ public class ProductController {
 
     private final CreateProductUseCase createProductUseCase;
     private final GetProductsUseCase getProductsUseCase;
+    private final UpdateProductUseCase updateProductUseCase;
+    private final DeleteProductUseCase deleteProductUseCase;
 
     public ProductController(
             CreateProductUseCase createProductUseCase,
-            GetProductsUseCase getProductsUseCase
+            GetProductsUseCase getProductsUseCase,
+            UpdateProductUseCase updateProductUseCase,
+            DeleteProductUseCase deleteProductUseCase
     ) {
         this.createProductUseCase = createProductUseCase;
         this.getProductsUseCase = getProductsUseCase;
+        this.updateProductUseCase = updateProductUseCase;
+        this.deleteProductUseCase = deleteProductUseCase;
     }
 
     @PostMapping
     public ResponseEntity<ProductResponse> createProduct(@RequestBody CreateProductRequest request) {
         ProductResponse response = createProductUseCase.create(request.toCommand());
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
+    }
+
+    @PutMapping("/{id}")
+    public ResponseEntity<ProductResponse> updateProduct(@PathVariable UUID id, @RequestBody UpdateProductRequest request) {
+        return ResponseEntity.ok(updateProductUseCase.update(id, request));
+    }
+
+    @DeleteMapping("/{id}")
+    public ResponseEntity<Void> deleteProduct(@PathVariable UUID id) {
+        deleteProductUseCase.delete(id);
+        return ResponseEntity.noContent().build();
     }
 
     @GetMapping

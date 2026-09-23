@@ -1,5 +1,5 @@
 import { httpClient } from "@/shared/api/httpClient";
-import type { Product, CreateProductDto } from "../domain/types";
+import type { Product, CreateProductDto, UpdateProductDto } from "../domain/types";
 
 export const productsApi = {
   getAll: async (): Promise<Product[]> => {
@@ -40,5 +40,13 @@ export const productsApi = {
     }
 
     return product;
+  },
+
+  update: async (id: string, data: UpdateProductDto): Promise<Product> => {
+    return httpClient.put<Product>(`/products/${id}`, data);
+  },
+
+  delete: async (id: string): Promise<void> => {
+    return httpClient.delete<void>(`/products/${id}`);
   },
 };

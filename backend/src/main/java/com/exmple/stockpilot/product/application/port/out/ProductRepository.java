@@ -16,4 +16,6 @@ public interface ProductRepository {
     Optional<Product> findBySku(SKU sku);
 
     List<Product> findAll();
+
+    void deleteById(ProductId id);
 }

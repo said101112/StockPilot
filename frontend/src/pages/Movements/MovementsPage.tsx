@@ -83,10 +83,10 @@ export default function MovementsPage() {
           </div>
           <div>
             <h1 className="text-2xl font-bold tracking-tight text-gray-900 dark:text-white">
-              Historique des Mouvements de Stock
+              Historique des Mouvements
             </h1>
             <p className="text-sm text-gray-500 dark:text-gray-400">
-              Journal complet et traçabilité de toutes les réceptions, sorties et déclarations de casse
+              Journal de traçabilité des entrées, sorties et déclarations de casse
             </p>
           </div>
         </div>

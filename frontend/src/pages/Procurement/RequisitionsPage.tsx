@@ -7,6 +7,8 @@ import type { PurchaseRequisition } from "@/features/procurement/domain/types";
 import type { Product } from "@/features/products/domain/types";
 import CreateRequisitionModal from "@/features/procurement/components/CreateRequisitionModal";
 import CreateOrderModal from "@/features/procurement/components/CreateOrderModal";
+import { ConfirmModal } from "@/components/common/ConfirmModal";
+import { useToast } from "@/shared/context/ToastContext";
 import {
   FileText,
   RefreshCw,
@@ -16,6 +18,7 @@ import {
   FilePlus,
   Plus,
   ShoppingCart,
+  Trash2,
 } from "lucide-react";
 
 export default function RequisitionsPage() {
@@ -29,6 +32,10 @@ export default function RequisitionsPage() {
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [selectedReqForOrder, setSelectedReqForOrder] = useState<PurchaseRequisition | null>(null);
   const [isOrderModalOpen, setIsOrderModalOpen] = useState(false);
+  const [reqToDelete, setReqToDelete] = useState<PurchaseRequisition | null>(null);
+  const [deleteLoading, setDeleteLoading] = useState(false);
+
+  const { showSuccess, showError } = useToast();
 
   const fetchData = async () => {
     try {
@@ -61,9 +68,10 @@ export default function RequisitionsPage() {
     try {
       setActionLoading(id);
       await procurementApi.submitRequisition(id);
+      showSuccess("Demande d'achat soumise pour approbation.");
       await fetchData();
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : "Erreur lors de la soumission");
+      showError(err instanceof Error ? err.message : "Erreur lors de la soumission de la demande.");
     } finally {
       setActionLoading(null);
     }
@@ -73,11 +81,27 @@ export default function RequisitionsPage() {
     try {
       setActionLoading(id);
       await procurementApi.approveRequisition(id);
+      showSuccess("Demande d'achat approuvée avec succès.");
       await fetchData();
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : "Erreur lors de la validation");
+      showError(err instanceof Error ? err.message : "Erreur lors de la validation de la demande.");
     } finally {
       setActionLoading(null);
+    }
+  };
+
+  const handleDeleteConfirm = async () => {
+    if (!reqToDelete) return;
+    try {
+      setDeleteLoading(true);
+      await procurementApi.deleteRequisition(reqToDelete.id);
+      showSuccess(`Demande ${reqToDelete.prNumber || reqToDelete.requisitionNumber} supprimée.`);
+      setReqToDelete(null);
+      await fetchData();
+    } catch (err: unknown) {
+      showError(err instanceof Error ? err.message : "Erreur lors de la suppression.");
+    } finally {
+      setDeleteLoading(false);
     }
   };
 
@@ -116,19 +140,19 @@ export default function RequisitionsPage() {
               Demandes d'Achat
             </h1>
             <p className="text-sm text-gray-500 dark:text-gray-400">
-              Expression des besoins de réapprovisionnement et validation managériale
+              Expression et validation des besoins de réapprovisionnement
             </p>
           </div>
         </div>
 
-        <div className="flex items-center gap-2.5">
+        <div className="flex items-center gap-2">
           <Button variant="outline" onClick={fetchData} disabled={loading} className="gap-2">
             <RefreshCw className={`h-4 w-4 ${loading ? "animate-spin" : ""}`} />
             Actualiser
           </Button>
           <Button onClick={() => setIsCreateModalOpen(true)} className="gap-2 bg-brand-600 hover:bg-brand-700 text-white">
             <Plus className="h-4 w-4" />
-            Nouvelle Demande d'Achat
+            Nouvelle Demande
           </Button>
         </div>
       </div>
@@ -200,48 +224,71 @@ export default function RequisitionsPage() {
                       <td className="px-6 py-4 text-xs text-gray-500">
                         {req.justification || req.notes || "Réapprovisionnement standard"}
                       </td>
-                      <td className="px-6 py-4 text-right space-x-2">
-                        {req.status === "DRAFT" && (
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            onClick={() => handleSubmit(req.id)}
-                            disabled={actionLoading === req.id}
-                            className="gap-1.5 text-xs text-brand-600 border-brand-300 hover:bg-brand-50"
-                          >
-                            <Send className="h-3.5 w-3.5" />
-                            Transmettre pour validation
-                          </Button>
-                        )}
-                        {req.status === "SUBMITTED" && (
-                          <Button
-                            size="sm"
-                            variant="primary"
-                            onClick={() => handleApprove(req.id)}
-                            disabled={actionLoading === req.id}
-                            className="gap-1.5 text-xs bg-emerald-600 hover:bg-emerald-700 text-white"
-                          >
-                            <CheckCircle2 className="h-3.5 w-3.5" />
-                            Valider la demande
-                          </Button>
-                        )}
-                        {req.status === "APPROVED" && (
-                          <Button
-                            size="sm"
-                            variant="primary"
-                            onClick={() => openOrderModal(req)}
-                            className="gap-1.5 text-xs bg-brand-600 hover:bg-brand-700 text-white"
-                          >
-                            <ShoppingCart className="h-3.5 w-3.5" />
-                            Générer la Commande
-                          </Button>
-                        )}
-                        {req.status === "ORDERED" && (
-                          <span className="inline-flex items-center gap-1 text-xs text-brand-600 font-semibold dark:text-brand-400">
-                            <CheckCircle2 className="h-3.5 w-3.5" />
-                            Bon de commande émis
-                          </span>
-                        )}
+                      <td className="px-6 py-4 text-right">
+                        <div className="flex items-center justify-end gap-2">
+                          {req.status === "DRAFT" && (
+                            <>
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={() => handleSubmit(req.id)}
+                                disabled={actionLoading === req.id}
+                                className="gap-1.5 text-xs text-brand-600 border-brand-300 hover:bg-brand-50"
+                              >
+                                <Send className="h-3.5 w-3.5" />
+                                Transmettre
+                              </Button>
+                              <button
+                                type="button"
+                                onClick={() => setReqToDelete(req)}
+                                title="Supprimer la demande"
+                                className="p-1.5 rounded-lg border border-rose-200 dark:border-rose-900/50 text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/30 transition-colors"
+                              >
+                                <Trash2 className="h-3.5 w-3.5" />
+                              </button>
+                            </>
+                          )}
+                          {req.status === "SUBMITTED" && (
+                            <Button
+                              size="sm"
+                              variant="primary"
+                              onClick={() => handleApprove(req.id)}
+                              disabled={actionLoading === req.id}
+                              className="gap-1.5 text-xs bg-emerald-600 hover:bg-emerald-700 text-white"
+                            >
+                              <CheckCircle2 className="h-3.5 w-3.5" />
+                              Valider la demande
+                            </Button>
+                          )}
+                          {req.status === "APPROVED" && (
+                            <Button
+                              size="sm"
+                              variant="primary"
+                              onClick={() => openOrderModal(req)}
+                              className="gap-1.5 text-xs bg-brand-600 hover:bg-brand-700 text-white"
+                            >
+                              <ShoppingCart className="h-3.5 w-3.5" />
+                              Générer la Commande
+                            </Button>
+                          )}
+                          {req.status === "REJECTED" && (
+                            <button
+                              type="button"
+                              onClick={() => setReqToDelete(req)}
+                              title="Supprimer la demande rejetée"
+                              className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border border-rose-200 dark:border-rose-900/50 text-xs font-medium text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/30 transition-colors"
+                            >
+                              <Trash2 className="h-3.5 w-3.5" />
+                              <span>Supprimer</span>
+                            </button>
+                          )}
+                          {req.status === "ORDERED" && (
+                            <span className="inline-flex items-center gap-1 text-xs text-brand-600 font-semibold dark:text-brand-400">
+                              <CheckCircle2 className="h-3.5 w-3.5" />
+                              Bon de commande émis
+                            </span>
+                          )}
+                        </div>
                       </td>
                     </tr>
                   );
@@ -258,6 +305,7 @@ export default function RequisitionsPage() {
         onClose={() => setIsCreateModalOpen(false)}
         onSuccess={() => {
           fetchData();
+          showSuccess("Nouvelle demande d'achat créée avec succès.");
         }}
       />
 
@@ -266,9 +314,21 @@ export default function RequisitionsPage() {
         onClose={() => setIsOrderModalOpen(false)}
         onSuccess={() => {
           fetchData();
+          showSuccess("Bon de commande généré avec succès.");
         }}
         requisition={selectedReqForOrder}
         product={selectedReqForOrder ? productMap[selectedReqForOrder.productId] : undefined}
+      />
+
+      {/* Confirmation Modal */}
+      <ConfirmModal
+        isOpen={!!reqToDelete}
+        title="Supprimer la demande d'achat"
+        message={`Êtes-vous sûr de vouloir supprimer la demande d'achat "${reqToDelete?.prNumber || reqToDelete?.requisitionNumber}" ? Cette action est irréversible.`}
+        confirmLabel="Supprimer définitivement"
+        isLoading={deleteLoading}
+        onConfirm={handleDeleteConfirm}
+        onCancel={() => setReqToDelete(null)}
       />
     </div>
   );

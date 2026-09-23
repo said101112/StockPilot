@@ -41,6 +41,11 @@ public class SupplierPersistenceAdapter implements SupplierRepository {
                 .map(this::toDomain);
     }
 
+    @Override
+    public void deleteById(SupplierId id) {
+        springDataSupplierRepository.deleteById(id.value());
+    }
+
     private Supplier toDomain(SupplierJpaEntity entity) {
         return new Supplier(
                 SupplierId.from(entity.getId()),

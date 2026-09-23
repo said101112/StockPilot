@@ -31,14 +31,14 @@ export async function apiClient<T>(endpoint: string, options: RequestInit = {}):
   });
 
   if (!response.ok) {
-    let errorDetail = response.statusText;
+    let errorDetail = response.statusText || "Une erreur est survenue";
     try {
       const errJson = await response.json();
-      errorDetail = errJson.message || errJson.error || JSON.stringify(errJson);
+      errorDetail = errJson.message || errJson.error || errorDetail;
     } catch {
       // Pas de corps JSON
     }
-    throw new ApiError(response.status, `Erreur ${response.status}: ${errorDetail}`);
+    throw new ApiError(response.status, errorDetail);
   }
 
   if (response.status === 204) {

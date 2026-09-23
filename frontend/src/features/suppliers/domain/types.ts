@@ -7,6 +7,7 @@ export interface Supplier {
   taxNumber: string;
   paymentTerms: string;
   currency: string;
+  status?: string;
 }
 
 export interface CreateSupplierDto {
@@ -17,4 +18,15 @@ export interface CreateSupplierDto {
   taxNumber: string;
   paymentTerms: string;
   currency: string;
+}
+
+export interface UpdateSupplierDto {
+  name: string;
+  email: string;
+  phoneNumber: string;
+  address: string;
+  taxNumber: string;
+  paymentTerms: string;
+  currency: string;
+  status?: string;
 }

@@ -14,7 +14,6 @@ import type { Product } from "@/features/products/domain/types";
 import CreateSupplierModal from "@/features/suppliers/components/CreateSupplierModal";
 import CreateProductModal from "@/features/products/components/CreateProductModal";
 import CreateRequisitionModal from "@/features/procurement/components/CreateRequisitionModal";
-import { StockPilotLogo } from "@/components/common/StockPilotLogo";
 import {
   Package,
   AlertTriangle,
@@ -164,36 +163,35 @@ export default function DashboardPage() {
     <div className="space-y-6">
       {/* Titre & Actions Principales */}
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <div className="flex items-center gap-4">
-          <StockPilotLogo size="lg" />
-          <div>
-            <h1 className="text-2xl font-black tracking-tight text-gray-900 dark:text-white">
-              Tableau de Bord — Pilotage des Stocks & Approvisionnements
-            </h1>
-            <p className="text-sm text-gray-500 dark:text-gray-400">
-              Supervision des niveaux de stock en temps réel, gestion des alertes et suivi des réapprovisionnements
-            </p>
-          </div>
+        <div>
+          <h1 className="text-2xl font-bold tracking-tight text-gray-900 dark:text-white">
+            Tableau de Bord
+          </h1>
+          <p className="text-sm text-gray-500 dark:text-gray-400">
+            Supervision des stocks, alertes et commandes en cours
+          </p>
         </div>
 
-        <div className="flex flex-wrap items-center gap-2.5">
-          <Button variant="outline" onClick={loadDashboardData} disabled={loading} className="gap-2">
+        <div className="flex flex-wrap items-center gap-2">
+          <Button variant="outline" onClick={loadDashboardData} disabled={loading} className="gap-1.5">
             <RefreshCw className={`h-4 w-4 ${loading ? "animate-spin" : ""}`} />
             Actualiser
           </Button>
           <Button
+            variant="outline"
             onClick={() => setIsSupplierModalOpen(true)}
-            className="gap-2 bg-slate-800 hover:bg-slate-900 text-white dark:bg-slate-700"
+            className="gap-1.5"
           >
             <Building2 className="h-4 w-4" />
-            Nouveau Fournisseur
+            + Fournisseur
           </Button>
           <Button
+            variant="outline"
             onClick={() => setIsProductModalOpen(true)}
-            className="gap-2 bg-slate-800 hover:bg-slate-900 text-white dark:bg-slate-700"
+            className="gap-1.5"
           >
             <Boxes className="h-4 w-4" />
-            Nouvel Article
+            + Article
           </Button>
           <Button
             onClick={() => {
@@ -203,18 +201,18 @@ export default function DashboardPage() {
             className="gap-2 bg-brand-600 hover:bg-brand-700 text-white"
           >
             <Plus className="h-4 w-4" />
-            Nouvelle Demande d'Achat
+            Nouvelle Demande
           </Button>
         </div>
       </div>
 
       {/* Cartes KPI Principales */}
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        {/* Stock Physique Total */}
+        {/* Stock Total */}
         <div className="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm dark:border-gray-800 dark:bg-gray-900 transition-all hover:border-brand-500/30">
           <div className="flex items-center justify-between">
             <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider">
-              Stock Physique Total
+              Stock Total
             </p>
             <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-blue-50 text-blue-600 dark:bg-blue-950/40 dark:text-blue-400">
               <Package className="h-5 w-5" />
@@ -239,7 +237,7 @@ export default function DashboardPage() {
         <div className="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm dark:border-gray-800 dark:bg-gray-900 transition-all hover:border-amber-500/30">
           <div className="flex items-center justify-between">
             <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider">
-              Alertes de Réappro
+              Alertes Stock
             </p>
             <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-amber-50 text-amber-600 dark:bg-amber-950/40 dark:text-amber-400">
               <AlertTriangle className="h-5 w-5" />
@@ -261,7 +259,7 @@ export default function DashboardPage() {
         <div className="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm dark:border-gray-800 dark:bg-gray-900 transition-all hover:border-brand-500/30">
           <div className="flex items-center justify-between">
             <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider">
-              Commandes Fournisseurs
+              Commandes en cours
             </p>
             <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-brand-50 text-brand-600 dark:bg-brand-950/40 dark:text-brand-400">
               <ShoppingCart className="h-5 w-5" />
@@ -283,7 +281,7 @@ export default function DashboardPage() {
         <div className="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm dark:border-gray-800 dark:bg-gray-900 transition-all hover:border-emerald-500/30">
           <div className="flex items-center justify-between">
             <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider">
-              Mouvements Enregistrés
+              Mouvements
             </p>
             <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-emerald-50 text-emerald-600 dark:bg-emerald-950/40 dark:text-emerald-400">
               <Activity className="h-5 w-5" />
@@ -294,7 +292,7 @@ export default function DashboardPage() {
               {stats.totalMovementsCount}
             </h3>
             <p className="mt-1 text-xs text-gray-500">
-              Historique certifié des entrées et sorties
+              Traçabilité des flux de stock
             </p>
           </div>
         </div>
@@ -348,12 +346,13 @@ export default function DashboardPage() {
       {/* Grid: Alertes Récentes Spécifiques + Raccourcis Opérations */}
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
         {/* Panneau des Alertes avec Vrais Articles & Jauge */}
+        {/* Panneau des Alertes avec Vrais Articles & Jauge */}
         <div className="lg:col-span-2 rounded-2xl border border-gray-200 bg-white p-6 shadow-sm dark:border-gray-800 dark:bg-gray-900">
           <div className="flex items-center justify-between border-b border-gray-100 pb-4 dark:border-gray-800">
             <div className="flex items-center gap-2">
               <ShieldAlert className="h-5 w-5 text-amber-500" />
               <h2 className="text-lg font-bold text-gray-900 dark:text-white">
-                Alertes de Stock Nécessitant une Action
+                Alertes de Réapprovisionnement
               </h2>
             </div>
             <Link
@@ -372,7 +371,7 @@ export default function DashboardPage() {
                   Aucune alerte active
                 </p>
                 <p className="text-xs text-gray-400 mt-1">
-                  Tous les stocks physiques sont actuellement au-dessus de leur point de commande.
+                  Tous les stocks respectent les points de commande.
                 </p>
               </div>
             ) : (
@@ -424,7 +423,7 @@ export default function DashboardPage() {
                         className="gap-1.5 text-xs bg-brand-600 hover:bg-brand-700 text-white w-full sm:w-auto"
                       >
                         <ShoppingCart className="h-3.5 w-3.5" />
-                        Commander (Créer DA)
+                        Commander
                       </Button>
                     </div>
                   </div>
@@ -434,18 +433,15 @@ export default function DashboardPage() {
           </div>
         </div>
 
-        {/* Raccourcis Opérations Rapides */}
+        {/* Actions Rapides */}
         <div className="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm dark:border-gray-800 dark:bg-gray-900 flex flex-col justify-between">
           <div>
             <div className="flex items-center gap-2">
               <Activity className="h-5 w-5 text-brand-500" />
               <h2 className="text-lg font-bold text-gray-900 dark:text-white">
-                Raccourcis Logistiques
+                Actions Rapides
               </h2>
             </div>
-            <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-              Actions directes sur la chaîne d'approvisionnement
-            </p>
 
             <div className="mt-4 flex flex-col gap-2.5">
               {/* Créer une Demande d'Achat */}
@@ -455,49 +451,34 @@ export default function DashboardPage() {
                   setSelectedProductForDA("");
                   setIsRequisitionModalOpen(true);
                 }}
-                className="flex items-center gap-3 w-full rounded-xl border border-purple-200/70 bg-purple-50/40 p-3 text-left text-sm font-semibold text-purple-950 transition-colors hover:bg-purple-50 dark:border-purple-900/40 dark:bg-purple-950/20 dark:text-purple-300"
+                className="flex items-center gap-3 w-full rounded-xl border border-gray-200 bg-gray-50/50 p-3 text-left text-sm font-semibold text-gray-800 transition-colors hover:border-brand-500 hover:bg-brand-50/50 dark:border-gray-700 dark:bg-gray-800/60 dark:text-gray-200 dark:hover:border-brand-500"
               >
                 <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-purple-100 text-purple-600 dark:bg-purple-900/40 dark:text-purple-400 shrink-0">
                   <FilePlus2 className="h-5 w-5" />
                 </div>
-                <div>
-                  <span className="block text-xs font-bold">Nouvelle Demande d'Achat</span>
-                  <span className="block text-[11px] font-normal text-purple-700/80 dark:text-purple-300/70">
-                    Formuler un besoin de réapprovisionnement
-                  </span>
-                </div>
+                <span className="text-xs font-bold">Nouvelle Demande d'Achat</span>
               </button>
 
               {/* Réceptionner une Commande */}
               <Link
                 to="/goods-receipt"
-                className="flex items-center gap-3 w-full rounded-xl border border-teal-200/70 bg-teal-50/40 p-3 text-left text-sm font-semibold text-teal-950 transition-colors hover:bg-teal-50 dark:border-teal-900/40 dark:bg-teal-950/20 dark:text-teal-300"
+                className="flex items-center gap-3 w-full rounded-xl border border-gray-200 bg-gray-50/50 p-3 text-left text-sm font-semibold text-gray-800 transition-colors hover:border-brand-500 hover:bg-brand-50/50 dark:border-gray-700 dark:bg-gray-800/60 dark:text-gray-200 dark:hover:border-brand-500"
               >
                 <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-teal-100 text-teal-600 dark:bg-teal-900/40 dark:text-teal-400 shrink-0">
                   <Truck className="h-5 w-5" />
                 </div>
-                <div>
-                  <span className="block text-xs font-bold">Réceptionner une Livraison</span>
-                  <span className="block text-[11px] font-normal text-teal-700/80 dark:text-teal-300/70">
-                    Enregistrer l'arrivée de marchandises au quai
-                  </span>
-                </div>
+                <span className="text-xs font-bold">Réceptionner une Livraison</span>
               </Link>
 
               {/* Déclarer une Casse */}
               <Link
                 to="/inventory"
-                className="flex items-center gap-3 w-full rounded-xl border border-rose-200/70 bg-rose-50/40 p-3 text-left text-sm font-semibold text-rose-950 transition-colors hover:bg-rose-50 dark:border-rose-900/40 dark:bg-rose-950/20 dark:text-rose-300"
+                className="flex items-center gap-3 w-full rounded-xl border border-gray-200 bg-gray-50/50 p-3 text-left text-sm font-semibold text-gray-800 transition-colors hover:border-brand-500 hover:bg-brand-50/50 dark:border-gray-700 dark:bg-gray-800/60 dark:text-gray-200 dark:hover:border-brand-500"
               >
                 <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-rose-100 text-rose-600 dark:bg-rose-900/40 dark:text-rose-400 shrink-0">
                   <Flame className="h-5 w-5" />
                 </div>
-                <div>
-                  <span className="block text-xs font-bold">Déclarer une Casse / Rebut</span>
-                  <span className="block text-[11px] font-normal text-rose-700/80 dark:text-rose-300/70">
-                    Sortie de stock immédiate pour produit endommagé
-                  </span>
-                </div>
+                <span className="text-xs font-bold">Déclarer une Casse</span>
               </Link>
 
               {/* Ajouter un Article */}
@@ -509,18 +490,9 @@ export default function DashboardPage() {
                 <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-blue-50 text-blue-600 dark:bg-blue-950/40 dark:text-blue-400 shrink-0">
                   <Boxes className="h-5 w-5" />
                 </div>
-                <div>
-                  <span className="block text-xs font-bold">Ajouter un Article</span>
-                  <span className="block text-[11px] font-normal text-gray-400">
-                    Enregistrer une nouvelle référence au catalogue
-                  </span>
-                </div>
+                <span className="text-xs font-bold">Nouvel Article</span>
               </button>
             </div>
-          </div>
-
-          <div className="mt-4 pt-3 border-t border-gray-100 dark:border-gray-800 text-[11px] text-gray-400 text-center">
-            StockPilot • Gestion Intelligente des Flux
           </div>
         </div>
       </div>
@@ -531,7 +503,7 @@ export default function DashboardPage() {
           <div className="flex items-center gap-2">
             <Activity className="h-5 w-5 text-emerald-500" />
             <h2 className="text-lg font-bold text-gray-900 dark:text-white">
-              Derniers Mouvements de Stock
+              Derniers Mouvements
             </h2>
           </div>
           <Link

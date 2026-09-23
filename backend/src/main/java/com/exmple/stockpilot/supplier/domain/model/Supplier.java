@@ -75,6 +75,33 @@ public class Supplier {
         this.status = SupplierStatus.ACTIVE;
     }
 
+    public void updateDetails(
+            String name,
+            ContactInfo contactInfo,
+            String address,
+            String taxNumber,
+            String paymentTerms,
+            String currency,
+            SupplierStatus status
+    ) {
+        if (name == null || name.trim().length() < 2) {
+            throw new IllegalArgumentException("Supplier name must have at least 2 characters");
+        }
+        this.name = name.trim();
+        this.contactInfo = Objects.requireNonNull(contactInfo, "ContactInfo cannot be null");
+        this.address = address != null ? address.trim() : "";
+        this.taxNumber = taxNumber != null ? taxNumber.trim() : "";
+        if (paymentTerms != null && !paymentTerms.isBlank()) {
+            this.paymentTerms = paymentTerms.trim();
+        }
+        if (currency != null && !currency.isBlank()) {
+            this.currency = currency.trim().toUpperCase();
+        }
+        if (status != null) {
+            this.status = status;
+        }
+    }
+
     // Getters
     public SupplierId getId() { return id; }
     public String getName() { return name; }

@@ -48,6 +48,11 @@ public class ProductPersistenceAdapter implements ProductRepository {
                 .toList();
     }
 
+    @Override
+    public void deleteById(ProductId id) {
+        springDataProductRepository.deleteById(id.value());
+    }
+
     private ProductJpaEntity toJpaEntity(Product product) {
         return new ProductJpaEntity(
                 product.getId().value(),

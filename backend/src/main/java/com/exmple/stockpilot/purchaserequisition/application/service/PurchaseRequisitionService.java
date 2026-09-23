@@ -96,6 +96,17 @@ public class PurchaseRequisitionService implements
     }
 
     @Override
+    @Transactional
+    public void deleteRequisition(UUID id) {
+        PurchaseRequisition pr = findOrThrow(id);
+        if (pr.getStatus() == PurchaseRequisitionStatus.ORDERED) {
+            throw new IllegalStateException("Impossible de supprimer une demande d'achat déjà commandée.");
+        }
+        purchaseRequisitionRepository.deleteById(PurchaseRequisitionId.from(id));
+        log.info("Purchase requisition deleted: {}", pr.getPrNumber());
+    }
+
+    @Override
     public List<PurchaseRequisitionResponse> getAllRequisitions() {
         return purchaseRequisitionRepository.findAll().stream()
                 .map(PurchaseRequisitionResponse::from)

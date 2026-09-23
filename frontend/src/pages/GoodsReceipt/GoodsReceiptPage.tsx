@@ -49,10 +49,10 @@ export default function GoodsReceiptPage() {
           </div>
           <div>
             <h1 className="text-2xl font-bold tracking-tight text-gray-900 dark:text-white">
-              Réceptions de Marchandises
+              Réceptions Marchandises
             </h1>
             <p className="text-sm text-gray-500 dark:text-gray-400">
-              Contrôle physique des livraisons fournisseurs et enregistrement des entrées en stock
+              Contrôle et enregistrement des livraisons fournisseurs
             </p>
           </div>
         </div>

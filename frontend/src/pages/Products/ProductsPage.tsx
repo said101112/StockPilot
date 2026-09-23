@@ -4,12 +4,17 @@ import Badge from "@/components/ui/badge/Badge";
 import { productsApi } from "@/features/products/api/productsApi";
 import type { Product } from "@/features/products/domain/types";
 import CreateProductModal from "@/features/products/components/CreateProductModal";
+import EditProductModal from "@/features/products/components/EditProductModal";
+import { ConfirmModal } from "@/components/common/ConfirmModal";
+import { useToast } from "@/shared/context/ToastContext";
 import {
   Boxes,
   Plus,
   Search,
   RefreshCw,
   Barcode,
+  Pencil,
+  Trash2,
 } from "lucide-react";
 
 export default function ProductsPage() {
@@ -18,6 +23,13 @@ export default function ProductsPage() {
   const [searchTerm, setSearchTerm] = useState("");
   const [categoryFilter, setCategoryFilter] = useState("ALL");
   const [isModalOpen, setIsModalOpen] = useState(false);
+
+  // Edit and Delete state
+  const [productToEdit, setProductToEdit] = useState<Product | null>(null);
+  const [productToDelete, setProductToDelete] = useState<Product | null>(null);
+  const [deleteLoading, setDeleteLoading] = useState(false);
+
+  const { showSuccess, showError } = useToast();
 
   const loadProducts = async () => {
     try {
@@ -35,6 +47,21 @@ export default function ProductsPage() {
     loadProducts();
   }, []);
 
+  const handleDeleteConfirm = async () => {
+    if (!productToDelete) return;
+    try {
+      setDeleteLoading(true);
+      await productsApi.delete(productToDelete.id);
+      setProducts((prev) => prev.filter((p) => p.id !== productToDelete.id));
+      showSuccess(`L'article "${productToDelete.name}" a été supprimé.`);
+      setProductToDelete(null);
+    } catch (err: unknown) {
+      showError(err instanceof Error ? err.message : "Erreur lors de la suppression de l'article.");
+    } finally {
+      setDeleteLoading(false);
+    }
+  };
+
   const filteredProducts = products.filter((p) => {
     const matchesSearch =
       p.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -50,13 +77,13 @@ export default function ProductsPage() {
   const getCategoryBadge = (cat: string) => {
     switch (cat) {
       case "FINISHED_GOOD":
-        return <Badge color="success">Produit Fini (FERT)</Badge>;
+        return <Badge color="success">Produit Fini</Badge>;
       case "RAW_MATERIAL":
-        return <Badge color="primary">Matière Première (ROH)</Badge>;
+        return <Badge color="primary">Matière Première</Badge>;
       case "SEMI_FINISHED":
-        return <Badge color="warning">Semi-Fini (HALB)</Badge>;
+        return <Badge color="warning">Semi-Fini</Badge>;
       case "SPARE_PART":
-        return <Badge color="error">Pièce Rechange (ERSA)</Badge>;
+        return <Badge color="error">Pièce de Rechange</Badge>;
       default:
         return <Badge color="light">{cat || "Général"}</Badge>;
     }
@@ -75,7 +102,7 @@ export default function ProductsPage() {
               Catalogue Articles
             </h1>
             <p className="text-sm text-gray-500 dark:text-gray-400">
-              Référentiel des articles, spécifications et fiches matières (Material Master SAP MM)
+              Référentiel des articles et spécifications techniques
             </p>
           </div>
         </div>
@@ -96,7 +123,7 @@ export default function ProductsPage() {
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-4">
         <div className="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm dark:border-gray-800 dark:bg-gray-900">
           <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider">
-            Total Articles Enregistrés
+            Total Articles
           </p>
           <p className="mt-2 text-3xl font-extrabold text-gray-900 dark:text-white">
             {products.length}
@@ -105,7 +132,7 @@ export default function ProductsPage() {
 
         <div className="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm dark:border-gray-800 dark:bg-gray-900">
           <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider">
-            Produits Finis (FERT)
+            Produits Finis
           </p>
           <p className="mt-2 text-3xl font-extrabold text-emerald-600 dark:text-emerald-400">
             {products.filter((p) => p.category === "FINISHED_GOOD").length}
@@ -114,7 +141,7 @@ export default function ProductsPage() {
 
         <div className="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm dark:border-gray-800 dark:bg-gray-900">
           <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider">
-            Matières Premières (ROH)
+            Matières Premières
           </p>
           <p className="mt-2 text-3xl font-extrabold text-blue-600 dark:text-blue-400">
             {products.filter((p) => p.category === "RAW_MATERIAL").length}
@@ -123,7 +150,7 @@ export default function ProductsPage() {
 
         <div className="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm dark:border-gray-800 dark:bg-gray-900">
           <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider">
-            Pièces Rechange (ERSA)
+            Pièces de Rechange
           </p>
           <p className="mt-2 text-3xl font-extrabold text-amber-600 dark:text-amber-400">
             {products.filter((p) => p.category === "SPARE_PART").length}
@@ -155,7 +182,7 @@ export default function ProductsPage() {
             <option value="FINISHED_GOOD">Produits Finis</option>
             <option value="RAW_MATERIAL">Matières Premières</option>
             <option value="SEMI_FINISHED">Semi-Finis</option>
-            <option value="SPARE_PART">Pièces Rechange</option>
+            <option value="SPARE_PART">Pièces de Rechange</option>
           </select>
         </div>
       </div>
@@ -167,11 +194,11 @@ export default function ProductsPage() {
             <thead className="border-b border-gray-100 bg-gray-50/75 text-xs uppercase tracking-wider text-gray-400 dark:border-gray-800 dark:bg-gray-800/50">
               <tr>
                 <th className="px-6 py-4">Référence SKU</th>
-                <th className="px-6 py-4">Désignation de l'Article</th>
-                <th className="px-6 py-4">Catégorie SAP</th>
-                <th className="px-6 py-4">Prix Unitaire Estimé</th>
-                <th className="px-6 py-4">Unité (UoM)</th>
-                <th className="px-6 py-4">Identifiant Système</th>
+                <th className="px-6 py-4">Désignation</th>
+                <th className="px-6 py-4">Catégorie</th>
+                <th className="px-6 py-4">Prix Unitaire</th>
+                <th className="px-6 py-4">Unité</th>
+                <th className="px-6 py-4 text-right">Actions</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100 dark:divide-gray-800">
@@ -241,8 +268,27 @@ export default function ProductsPage() {
                         {product.unitOfMeasure || "PCS"}
                       </span>
                     </td>
-                    <td className="px-6 py-4 font-mono text-xs text-gray-400">
-                      {product.id.substring(0, 13)}...
+                    <td className="px-6 py-4 text-right">
+                      <div className="flex items-center justify-end gap-2">
+                        <button
+                          type="button"
+                          onClick={() => setProductToEdit(product)}
+                          title="Modifier cet article"
+                          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-gray-200 dark:border-gray-700 text-xs font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+                        >
+                          <Pencil className="h-3.5 w-3.5 text-blue-500" />
+                          <span>Modifier</span>
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setProductToDelete(product)}
+                          title="Supprimer cet article"
+                          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-rose-200 dark:border-rose-900/50 text-xs font-medium text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/30 transition-colors"
+                        >
+                          <Trash2 className="h-3.5 w-3.5" />
+                          <span>Supprimer</span>
+                        </button>
+                      </div>
                     </td>
                   </tr>
                 ))
@@ -258,7 +304,30 @@ export default function ProductsPage() {
         onClose={() => setIsModalOpen(false)}
         onSuccess={(created) => {
           setProducts((prev) => [created, ...prev]);
+          showSuccess(`L'article "${created.name}" a été créé avec succès.`);
         }}
+      />
+
+      {/* Edit Modal */}
+      <EditProductModal
+        isOpen={!!productToEdit}
+        onClose={() => setProductToEdit(null)}
+        product={productToEdit}
+        onSuccess={(updated) => {
+          setProducts((prev) => prev.map((p) => (p.id === updated.id ? updated : p)));
+          showSuccess(`L'article "${updated.name}" a été mis à jour avec succès.`);
+        }}
+      />
+
+      {/* Delete Confirmation Modal */}
+      <ConfirmModal
+        isOpen={!!productToDelete}
+        title="Confirmer la suppression"
+        message={`Êtes-vous sûr de vouloir supprimer définitivement l'article "${productToDelete?.name}" (${productToDelete?.sku}) ? Cette action est irréversible.`}
+        confirmLabel="Supprimer définitivement"
+        isLoading={deleteLoading}
+        onConfirm={handleDeleteConfirm}
+        onCancel={() => setProductToDelete(null)}
       />
     </div>
   );

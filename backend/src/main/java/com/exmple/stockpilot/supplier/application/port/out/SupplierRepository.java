@@ -10,4 +10,5 @@ public interface SupplierRepository {
     Supplier save(Supplier supplier);
     Optional<Supplier> findById(SupplierId id);
     List<Supplier> getAllSuppliers();
+    void deleteById(SupplierId id);
 }

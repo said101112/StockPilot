@@ -12,9 +12,11 @@ import SuppliersPage from "./pages/Suppliers/SuppliersPage";
 import ProductsPage from "./pages/Products/ProductsPage";
 import NotFound from "./pages/OtherPage/NotFound";
 
+import { ToastProvider } from "./shared/context/ToastContext";
+
 export default function App() {
   return (
-    <>
+    <ToastProvider>
       <Router>
         <ScrollToTop />
         <Routes>
@@ -35,6 +37,6 @@ export default function App() {
           <Route path="*" element={<NotFound />} />
         </Routes>
       </Router>
-    </>
+    </ToastProvider>
   );
 }

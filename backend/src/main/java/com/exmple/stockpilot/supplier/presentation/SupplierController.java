@@ -4,6 +4,11 @@ import com.exmple.stockpilot.supplier.application.port.in.CreateSupplierUseCase;
 import com.exmple.stockpilot.supplier.application.port.in.GetSupplierByIdUseCase;
 import com.exmple.stockpilot.supplier.application.port.in.GetSupplierUseCase;
 
+import com.exmple.stockpilot.supplier.application.port.in.DeleteSupplierUseCase;
+import com.exmple.stockpilot.supplier.application.port.in.UpdateSupplierUseCase;
+import org.springframework.web.bind.annotation.DeleteMapping;
+import org.springframework.web.bind.annotation.PutMapping;
+
 import java.util.List;
 import java.util.UUID;
 
@@ -23,21 +28,42 @@ public class SupplierController {
     private final CreateSupplierUseCase createSupplierUseCase;
     private final GetSupplierUseCase getSupplierUseCase;
     private final GetSupplierByIdUseCase getSupplierByIdUseCase;
+    private final UpdateSupplierUseCase updateSupplierUseCase;
+    private final DeleteSupplierUseCase deleteSupplierUseCase;
 
     public SupplierController(
             CreateSupplierUseCase createSupplierUseCase,
             GetSupplierUseCase getSupplierUseCase,
-            GetSupplierByIdUseCase getSupplierByIdUseCase
+            GetSupplierByIdUseCase getSupplierByIdUseCase,
+            UpdateSupplierUseCase updateSupplierUseCase,
+            DeleteSupplierUseCase deleteSupplierUseCase
     ) {
         this.createSupplierUseCase = createSupplierUseCase;
         this.getSupplierUseCase = getSupplierUseCase;
         this.getSupplierByIdUseCase = getSupplierByIdUseCase;
+        this.updateSupplierUseCase = updateSupplierUseCase;
+        this.deleteSupplierUseCase = deleteSupplierUseCase;
     }
 
     @PostMapping
     public ResponseEntity<SupplierResponse> createSupplier(@RequestBody CreateSupplierRequest request) {
         SupplierResponse response = createSupplierUseCase.create(request);
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
+    }
+
+    @PutMapping("/{id}")
+    public ResponseEntity<SupplierResponse> updateSupplier(
+            @PathVariable UUID id,
+            @RequestBody UpdateSupplierRequest request
+    ) {
+        SupplierResponse response = updateSupplierUseCase.update(id, request);
+        return ResponseEntity.ok(response);
+    }
+
+    @DeleteMapping("/{id}")
+    public ResponseEntity<Void> deleteSupplier(@PathVariable UUID id) {
+        deleteSupplierUseCase.delete(id);
+        return ResponseEntity.noContent().build();
     }
 
     @GetMapping

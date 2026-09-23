@@ -21,3 +21,11 @@ export interface CreateProductDto {
   initialStock?: number;
   reorderPoint?: number;
 }
+
+export interface UpdateProductDto {
+  name: string;
+  description: string;
+  price: number;
+  unitOfMeasure: string;
+  category: string;
+}

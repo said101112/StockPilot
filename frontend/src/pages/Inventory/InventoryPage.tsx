@@ -101,10 +101,10 @@ export default function InventoryPage() {
           </div>
           <div>
             <h1 className="text-2xl font-bold tracking-tight text-gray-900 dark:text-white">
-              Inventaire & Niveaux de Stock
+              Inventaire & Stocks
             </h1>
             <p className="text-sm text-gray-500 dark:text-gray-400">
-              Supervision des quantités physiques, points de réapprovisionnement et sorties pour casse
+              État des stocks physiques, seuils d'alerte et déclarations de casse
             </p>
           </div>
         </div>

@@ -11,6 +11,9 @@ import com.exmple.stockpilot.product.domain.valueobject.ProductCategory;
 import com.exmple.stockpilot.product.domain.valueobject.ProductId;
 import com.exmple.stockpilot.product.domain.valueobject.SKU;
 import com.exmple.stockpilot.product.domain.valueobject.UnitOfMeasure;
+import com.exmple.stockpilot.product.application.port.in.DeleteProductUseCase;
+import com.exmple.stockpilot.product.application.port.in.UpdateProductUseCase;
+import com.exmple.stockpilot.product.presentation.UpdateProductRequest;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
@@ -18,7 +21,7 @@ import java.util.NoSuchElementException;
 import java.util.UUID;
 
 @Service
-public class ProductApplicationService implements CreateProductUseCase, GetProductsUseCase {
+public class ProductApplicationService implements CreateProductUseCase, GetProductsUseCase, UpdateProductUseCase, DeleteProductUseCase {
 
     private final ProductRepository productRepository;
 
@@ -72,5 +75,30 @@ public class ProductApplicationService implements CreateProductUseCase, GetProdu
         return productRepository.findBySku(SKU.of(sku))
                 .map(ProductResponse::from)
                 .orElseThrow(() -> new NoSuchElementException("Product not found with SKU: " + sku));
+    }
+
+    @Override
+    public ProductResponse update(UUID id, UpdateProductRequest request) {
+        Product product = productRepository.findById(ProductId.from(id))
+                .orElseThrow(() -> new NoSuchElementException("Product not found with id: " + id));
+
+        Price price = request.price() != null 
+                ? Price.of(request.price(), request.currency() != null ? request.currency() : product.getPrice().currency())
+                : product.getPrice();
+        UnitOfMeasure uom = request.unitOfMeasure() != null && !request.unitOfMeasure().isBlank()
+                ? UnitOfMeasure.of(request.unitOfMeasure())
+                : product.getUnitOfMeasure();
+        ProductCategory category = request.category() != null
+                ? ProductCategory.fromString(request.category())
+                : product.getCategory();
+
+        product.updateDetails(request.name(), request.description(), price, uom, category);
+        Product saved = productRepository.save(product);
+        return ProductResponse.from(saved);
+    }
+
+    @Override
+    public void delete(UUID id) {
+        productRepository.deleteById(ProductId.from(id));
     }
 }

@@ -5,7 +5,17 @@ import { procurementApi } from "@/features/procurement/api/procurementApi";
 import { suppliersApi } from "@/features/suppliers/api/suppliersApi";
 import type { PurchaseOrder } from "@/features/procurement/domain/types";
 import type { Supplier } from "@/features/suppliers/domain/types";
-import { ShoppingCart, RefreshCw, Send, AlertCircle, ShoppingBag, Building2 } from "lucide-react";
+import { ConfirmModal } from "@/components/common/ConfirmModal";
+import { useToast } from "@/shared/context/ToastContext";
+import {
+  ShoppingCart,
+  RefreshCw,
+  Send,
+  AlertCircle,
+  ShoppingBag,
+  Building2,
+  Ban,
+} from "lucide-react";
 
 export default function OrdersPage() {
   const [orders, setOrders] = useState<PurchaseOrder[]>([]);
@@ -13,6 +23,12 @@ export default function OrdersPage() {
   const [loading, setLoading] = useState<boolean>(true);
   const [actionLoading, setActionLoading] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+
+  // Cancel order modal
+  const [orderToCancel, setOrderToCancel] = useState<PurchaseOrder | null>(null);
+  const [cancelLoading, setCancelLoading] = useState(false);
+
+  const { showSuccess, showError } = useToast();
 
   const fetchOrders = async () => {
     try {
@@ -45,11 +61,27 @@ export default function OrdersPage() {
     try {
       setActionLoading(id);
       await procurementApi.issueOrder(id);
+      showSuccess("Bon de commande envoyé au fournisseur.");
       await fetchOrders();
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : "Erreur lors de l'envoi de la commande");
+      showError(err instanceof Error ? err.message : "Erreur lors de l'envoi de la commande");
     } finally {
       setActionLoading(null);
+    }
+  };
+
+  const handleCancelConfirm = async () => {
+    if (!orderToCancel) return;
+    try {
+      setCancelLoading(true);
+      await procurementApi.cancelOrder(orderToCancel.id);
+      showSuccess(`Le bon de commande "${orderToCancel.poNumber}" a été annulé.`);
+      setOrderToCancel(null);
+      await fetchOrders();
+    } catch (err: unknown) {
+      showError(err instanceof Error ? err.message : "Erreur lors de l'annulation de la commande");
+    } finally {
+      setCancelLoading(false);
     }
   };
 
@@ -83,7 +115,7 @@ export default function OrdersPage() {
               Commandes Fournisseurs
             </h1>
             <p className="text-sm text-gray-500 dark:text-gray-400">
-              Contrats d'achat officiels envoyés aux partenaires et suivi des livraisons
+              Suivi des commandes émises et livraisons attendues
             </p>
           </div>
         </div>
@@ -170,22 +202,51 @@ export default function OrdersPage() {
                           : "À convenir"}
                       </td>
                       <td className="px-6 py-4 text-right">
-                        {po.status === "DRAFT" ? (
-                          <Button
-                            size="sm"
-                            variant="primary"
-                            onClick={() => handleIssue(po.id)}
-                            disabled={actionLoading === po.id}
-                            className="gap-1.5 text-xs bg-brand-600 hover:bg-brand-700 text-white"
-                          >
-                            <Send className="h-3.5 w-3.5" />
-                            Envoyer au Fournisseur
-                          </Button>
-                        ) : (
-                          <span className="text-xs text-gray-400 italic">
-                            Commande transmise
-                          </span>
-                        )}
+                        <div className="flex items-center justify-end gap-2">
+                          {po.status === "DRAFT" && (
+                            <>
+                              <Button
+                                size="sm"
+                                variant="primary"
+                                onClick={() => handleIssue(po.id)}
+                                disabled={actionLoading === po.id}
+                                className="gap-1.5 text-xs bg-brand-600 hover:bg-brand-700 text-white"
+                              >
+                                <Send className="h-3.5 w-3.5" />
+                                Envoyer
+                              </Button>
+                              <button
+                                type="button"
+                                onClick={() => setOrderToCancel(po)}
+                                title="Annuler la commande"
+                                className="p-1.5 rounded-lg border border-rose-200 dark:border-rose-900/50 text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/30 transition-colors"
+                              >
+                                <Ban className="h-3.5 w-3.5" />
+                              </button>
+                            </>
+                          )}
+                          {po.status === "ISSUED" && (
+                            <button
+                              type="button"
+                              onClick={() => setOrderToCancel(po)}
+                              title="Annuler la commande en cours"
+                              className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border border-rose-200 dark:border-rose-900/50 text-xs font-medium text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/30 transition-colors"
+                            >
+                              <Ban className="h-3.5 w-3.5" />
+                              <span>Annuler</span>
+                            </button>
+                          )}
+                          {po.status === "CANCELLED" && (
+                            <span className="text-xs text-rose-500 font-medium">
+                              Annulée
+                            </span>
+                          )}
+                          {(po.status === "PARTIALLY_RECEIVED" || po.status === "COMPLETED") && (
+                            <span className="text-xs text-gray-400 italic">
+                              Réception en cours
+                            </span>
+                          )}
+                        </div>
                       </td>
                     </tr>
                   );
@@ -195,6 +256,18 @@ export default function OrdersPage() {
           </table>
         </div>
       </div>
+
+      {/* Confirmation Modal */}
+      <ConfirmModal
+        isOpen={!!orderToCancel}
+        title="Annuler le bon de commande"
+        message={`Êtes-vous sûr de vouloir annuler le bon de commande "${orderToCancel?.poNumber}" ? Cette action annulera formellement la commande auprès du fournisseur.`}
+        confirmLabel="Confirmer l'annulation"
+        variant="danger"
+        isLoading={cancelLoading}
+        onConfirm={handleCancelConfirm}
+        onCancel={() => setOrderToCancel(null)}
+      />
     </div>
   );
 }

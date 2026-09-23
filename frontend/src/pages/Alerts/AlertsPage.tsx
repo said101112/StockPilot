@@ -100,10 +100,10 @@ export default function AlertsPage() {
           </div>
           <div>
             <h1 className="text-2xl font-bold tracking-tight text-gray-900 dark:text-white">
-              Alertes de Réapprovisionnement
+              Alertes de Stock
             </h1>
             <p className="text-sm text-gray-500 dark:text-gray-400">
-              Déclenchées automatiquement dès que le stock physique passe sous le point de commande
+              Articles ayant franchi le seuil d'alerte minimum
             </p>
           </div>
         </div>

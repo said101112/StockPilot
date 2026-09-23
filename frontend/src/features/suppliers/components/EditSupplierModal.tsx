@@ -1,19 +1,20 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Modal } from "@/components/ui/modal";
 import Button from "@/components/ui/button/Button";
 import Input from "@/components/form/input/InputField";
 import Label from "@/components/form/Label";
 import { suppliersApi } from "../api/suppliersApi";
 import type { Supplier } from "../domain/types";
-import { Building2, Mail, Phone, MapPin, Receipt, CheckCircle, AlertCircle } from "lucide-react";
+import { Edit3, Mail, Phone, MapPin, Receipt, CheckCircle, AlertCircle } from "lucide-react";
 
 interface Props {
   isOpen: boolean;
   onClose: () => void;
-  onSuccess: (newSupplier: Supplier) => void;
+  supplier: Supplier | null;
+  onSuccess: (updatedSupplier: Supplier) => void;
 }
 
-export default function CreateSupplierModal({ isOpen, onClose, onSuccess }: Props) {
+export default function EditSupplierModal({ isOpen, onClose, supplier, onSuccess }: Props) {
   const [formData, setFormData] = useState({
     name: "",
     email: "",
@@ -22,9 +23,26 @@ export default function CreateSupplierModal({ isOpen, onClose, onSuccess }: Prop
     taxNumber: "",
     paymentTerms: "NET_30",
     currency: "EUR",
+    status: "ACTIVE",
   });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (supplier) {
+      setFormData({
+        name: supplier.name,
+        email: supplier.email,
+        phoneNumber: supplier.phoneNumber || "",
+        address: supplier.address || "",
+        taxNumber: supplier.taxNumber || "",
+        paymentTerms: supplier.paymentTerms || "NET_30",
+        currency: supplier.currency || "EUR",
+        status: supplier.status || "ACTIVE",
+      });
+      setError(null);
+    }
+  }, [supplier]);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     setFormData((prev) => ({
@@ -35,15 +53,17 @@ export default function CreateSupplierModal({ isOpen, onClose, onSuccess }: Prop
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!supplier) return;
+
     if (!formData.name.trim() || !formData.email.trim()) {
-      setError("Le nom de l'entreprise et l'adresse email sont obligatoires.");
+      setError("Le nom de l'entreprise et l'email sont obligatoires.");
       return;
     }
 
     try {
       setLoading(true);
       setError(null);
-      const created = await suppliersApi.create({
+      const updated = await suppliersApi.update(supplier.id, {
         name: formData.name.trim(),
         email: formData.email.trim(),
         phoneNumber: formData.phoneNumber.trim(),
@@ -51,46 +71,38 @@ export default function CreateSupplierModal({ isOpen, onClose, onSuccess }: Prop
         taxNumber: formData.taxNumber.trim(),
         paymentTerms: formData.paymentTerms,
         currency: formData.currency,
+        status: formData.status,
       });
 
-      // Reset form
-      setFormData({
-        name: "",
-        email: "",
-        phoneNumber: "",
-        address: "",
-        taxNumber: "",
-        paymentTerms: "NET_30",
-        currency: "EUR",
-      });
-
-      onSuccess(created);
+      onSuccess(updated);
       onClose();
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : "Erreur lors de la création du fournisseur.");
+      setError(err instanceof Error ? err.message : "Erreur lors de la mise à jour du fournisseur.");
     } finally {
       setLoading(false);
     }
   };
 
+  if (!supplier) return null;
+
   return (
     <Modal isOpen={isOpen} onClose={onClose} className="max-w-xl p-6">
       <div className="flex items-center gap-3 border-b border-gray-100 pb-4 dark:border-gray-800">
-        <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-brand-50 text-brand-600 dark:bg-brand-950/40 dark:text-brand-400">
-          <Building2 className="h-5 w-5" />
+        <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-blue-50 text-blue-600 dark:bg-blue-950/40 dark:text-blue-400">
+          <Edit3 className="h-5 w-5" />
         </div>
         <div>
           <h3 className="text-lg font-bold text-gray-900 dark:text-white">
-            Nouveau Fournisseur
+            Modifier le Fournisseur
           </h3>
           <p className="text-xs text-gray-500">
-            Création d'une fiche partenaire au référentiel fournisseurs
+            Fiche fournisseur : <span className="font-semibold text-gray-700 dark:text-gray-300">{supplier.name}</span>
           </p>
         </div>
       </div>
 
       {error && (
-        <div className="mt-4 flex items-center gap-2 rounded-xl border border-error-200 bg-error-50 p-3 text-xs text-error-700 dark:border-error-900 dark:bg-error-950/30 dark:text-error-400">
+        <div className="mt-4 flex items-center gap-2 rounded-xl border border-rose-200 bg-rose-50 p-3 text-xs text-rose-700 dark:border-rose-900 dark:bg-rose-950/30 dark:text-rose-400">
           <AlertCircle className="h-4 w-4 shrink-0" />
           <span>{error}</span>
         </div>
@@ -98,13 +110,13 @@ export default function CreateSupplierModal({ isOpen, onClose, onSuccess }: Prop
 
       <form onSubmit={handleSubmit} className="mt-5 space-y-4">
         <div>
-          <Label htmlFor="name">Raison Sociale / Nom de l'entreprise *</Label>
+          <Label htmlFor="name">Raison Sociale / Nom *</Label>
           <div className="relative mt-1">
             <Input
               id="name"
               name="name"
               type="text"
-              placeholder="Ex: Siemens France SAS, Bosch Logistics..."
+              placeholder="Ex: Siemens France SAS..."
               value={formData.name}
               onChange={handleChange}
               required
@@ -147,7 +159,7 @@ export default function CreateSupplierModal({ isOpen, onClose, onSuccess }: Prop
 
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
           <div>
-            <Label htmlFor="taxNumber">Numéro de TVA Intracommunautaire</Label>
+            <Label htmlFor="taxNumber">Numéro de TVA</Label>
             <div className="relative mt-1">
               <Input
                 id="taxNumber"
@@ -162,7 +174,7 @@ export default function CreateSupplierModal({ isOpen, onClose, onSuccess }: Prop
           </div>
 
           <div>
-            <Label htmlFor="address">Siège Social / Adresse</Label>
+            <Label htmlFor="address">Adresse / Siège Social</Label>
             <div className="relative mt-1">
               <Input
                 id="address"
@@ -177,9 +189,9 @@ export default function CreateSupplierModal({ isOpen, onClose, onSuccess }: Prop
           </div>
         </div>
 
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
           <div>
-            <Label htmlFor="paymentTerms">Conditions de Règlement (Payment Terms)</Label>
+            <Label htmlFor="paymentTerms">Conditions de Règlement</Label>
             <select
               id="paymentTerms"
               name="paymentTerms"
@@ -187,15 +199,15 @@ export default function CreateSupplierModal({ isOpen, onClose, onSuccess }: Prop
               onChange={handleChange}
               className="mt-1 block w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 shadow-sm focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500 dark:border-gray-700 dark:bg-gray-800 dark:text-white"
             >
-              <option value="IMMEDIATE">Paiement Immédiat (Comptant)</option>
-              <option value="NET_30">Net 30 Jours (Standard)</option>
-              <option value="NET_60">Net 60 Jours (Grand Compte)</option>
+              <option value="IMMEDIATE">Comptant</option>
+              <option value="NET_30">30 Jours</option>
+              <option value="NET_60">60 Jours</option>
               <option value="CASH">Espèces / Chèque</option>
             </select>
           </div>
 
           <div>
-            <Label htmlFor="currency">Devise Transactionnelle</Label>
+            <Label htmlFor="currency">Devise</Label>
             <select
               id="currency"
               name="currency"
@@ -203,10 +215,24 @@ export default function CreateSupplierModal({ isOpen, onClose, onSuccess }: Prop
               onChange={handleChange}
               className="mt-1 block w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 shadow-sm focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500 dark:border-gray-700 dark:bg-gray-800 dark:text-white"
             >
-              <option value="EUR">EUR (€) - Euro</option>
-              <option value="USD">USD ($) - Dollar US</option>
-              <option value="GBP">GBP (£) - Livre Sterling</option>
-              <option value="MAD">MAD - Dirham Marocain</option>
+              <option value="EUR">EUR (€)</option>
+              <option value="USD">USD ($)</option>
+              <option value="GBP">GBP (£)</option>
+              <option value="MAD">MAD</option>
+            </select>
+          </div>
+
+          <div>
+            <Label htmlFor="status">Statut</Label>
+            <select
+              id="status"
+              name="status"
+              value={formData.status}
+              onChange={handleChange}
+              className="mt-1 block w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 shadow-sm focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500 dark:border-gray-700 dark:bg-gray-800 dark:text-white"
+            >
+              <option value="ACTIVE">Actif</option>
+              <option value="INACTIVE">Inactif</option>
             </select>
           </div>
         </div>
@@ -217,7 +243,7 @@ export default function CreateSupplierModal({ isOpen, onClose, onSuccess }: Prop
           </Button>
           <Button type="submit" disabled={loading} className="gap-2">
             <CheckCircle className="h-4 w-4" />
-            {loading ? "Création en cours..." : "Enregistrer le Fournisseur"}
+            {loading ? "Enregistrement..." : "Sauvegarder"}
           </Button>
         </div>
       </form>

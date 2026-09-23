@@ -77,6 +77,24 @@ public class Product {
         this.status = ProductStatus.INACTIVE;
     }
 
+    public void updateDetails(String name, String description, Price price, UnitOfMeasure unitOfMeasure, ProductCategory category) {
+        if (name != null && name.trim().length() >= 2) {
+            this.name = name.trim();
+        }
+        if (description != null) {
+            this.description = description.trim();
+        }
+        if (price != null) {
+            this.price = price;
+        }
+        if (unitOfMeasure != null) {
+            this.unitOfMeasure = unitOfMeasure;
+        }
+        if (category != null) {
+            this.category = category;
+        }
+    }
+
     public void activate() {
         this.status = ProductStatus.ACTIVE;
     }

@@ -25,6 +25,8 @@ export const procurementApi = {
       method: "POST",
       body: JSON.stringify({ reason }),
     }),
+  deleteRequisition: (id: string) =>
+    apiClient<void>(`/api/purchase-requisitions/${id}`, { method: "DELETE" }),
 
   // Bons de Commande (PO / BC)
   getOrders: () => apiClient<PurchaseOrder[]>("/api/purchase-orders"),
@@ -41,4 +43,6 @@ export const procurementApi = {
     }),
   issueOrder: (id: string) =>
     apiClient<PurchaseOrder>(`/api/purchase-orders/${id}/issue`, { method: "POST" }),
+  cancelOrder: (id: string) =>
+    apiClient<PurchaseOrder>(`/api/purchase-orders/${id}/cancel`, { method: "POST" }),
 };

@@ -172,23 +172,18 @@ export default function AppSidebar() {
         <Link to="/" className="flex items-center gap-3 group">
           <StockPilotLogo size="md" />
           {(isExpanded || isHovered || isMobileOpen) && (
-            <div className="overflow-hidden">
-              <span className="block text-lg font-black tracking-tight text-gray-900 dark:text-white group-hover:text-brand-500 transition-colors">
-                Stock<span className="text-brand-500">Pilot</span>
-              </span>
-              <span className="block text-[9px] font-extrabold uppercase tracking-widest text-brand-600 dark:text-sky-400">
-                Aerospace & Supply Chain ERP
-              </span>
-            </div>
+            <span className="block text-xl font-bold tracking-tight text-gray-900 dark:text-white group-hover:text-brand-500 transition-colors">
+              Stock<span className="text-brand-500">Pilot</span>
+            </span>
           )}
         </Link>
       </div>
 
       {/* Navigation Sections */}
       <div className="no-scrollbar flex flex-1 flex-col overflow-y-auto py-5 space-y-6">
-        {renderNavSection(masterDataItems, "Référentiel & Stocks")}
-        {renderNavSection(procurementItems, "Cycle Achats (P2P)")}
-        {renderNavSection(auditItems, "Contrôle & Audit")}
+        {renderNavSection(masterDataItems, "Catalogue & Stocks")}
+        {renderNavSection(procurementItems, "Achats & Commandes")}
+        {renderNavSection(auditItems, "Suivi & Traçabilité")}
       </div>
     </aside>
   );

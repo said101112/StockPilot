@@ -18,4 +18,6 @@ public interface PurchaseRequisitionRepository {
     List<PurchaseRequisition> findAll();
 
     List<PurchaseRequisition> findByStatus(PurchaseRequisitionStatus status);
+
+    void deleteById(PurchaseRequisitionId id);
 }

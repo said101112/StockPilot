@@ -79,4 +79,10 @@ public class PurchaseRequisitionController {
     ) {
         return ResponseEntity.ok(managePurchaseRequisitionUseCase.rejectRequisition(id, request.reason()));
     }
+
+    @org.springframework.web.bind.annotation.DeleteMapping("/{id}")
+    public ResponseEntity<Void> deleteRequisition(@PathVariable UUID id) {
+        managePurchaseRequisitionUseCase.deleteRequisition(id);
+        return ResponseEntity.noContent().build();
+    }
 }

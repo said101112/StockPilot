@@ -4,6 +4,9 @@ import Badge from "@/components/ui/badge/Badge";
 import { suppliersApi } from "@/features/suppliers/api/suppliersApi";
 import type { Supplier } from "@/features/suppliers/domain/types";
 import CreateSupplierModal from "@/features/suppliers/components/CreateSupplierModal";
+import EditSupplierModal from "@/features/suppliers/components/EditSupplierModal";
+import { ConfirmModal } from "@/components/common/ConfirmModal";
+import { useToast } from "@/shared/context/ToastContext";
 import {
   Building2,
   Plus,
@@ -14,6 +17,8 @@ import {
   RefreshCw,
   ExternalLink,
   ShieldCheck,
+  Pencil,
+  Trash2,
 } from "lucide-react";
 
 export default function SuppliersPage() {
@@ -21,6 +26,13 @@ export default function SuppliersPage() {
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
   const [isModalOpen, setIsModalOpen] = useState(false);
+
+  // Edit & Delete state
+  const [supplierToEdit, setSupplierToEdit] = useState<Supplier | null>(null);
+  const [supplierToDelete, setSupplierToDelete] = useState<Supplier | null>(null);
+  const [deleteLoading, setDeleteLoading] = useState(false);
+
+  const { showSuccess, showError } = useToast();
 
   const loadSuppliers = async () => {
     try {
@@ -38,6 +50,21 @@ export default function SuppliersPage() {
     loadSuppliers();
   }, []);
 
+  const handleDeleteConfirm = async () => {
+    if (!supplierToDelete) return;
+    try {
+      setDeleteLoading(true);
+      await suppliersApi.delete(supplierToDelete.id);
+      setSuppliers((prev) => prev.filter((s) => s.id !== supplierToDelete.id));
+      showSuccess(`Le fournisseur "${supplierToDelete.name}" a été supprimé.`);
+      setSupplierToDelete(null);
+    } catch (err: unknown) {
+      showError(err instanceof Error ? err.message : "Erreur lors de la suppression du fournisseur.");
+    } finally {
+      setDeleteLoading(false);
+    }
+  };
+
   const filteredSuppliers = suppliers.filter(
     (s) =>
       s.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -50,9 +77,9 @@ export default function SuppliersPage() {
       case "IMMEDIATE":
         return <Badge color="warning">Comptant</Badge>;
       case "NET_30":
-        return <Badge color="primary">Net 30 Jours</Badge>;
+        return <Badge color="primary">30 Jours</Badge>;
       case "NET_60":
-        return <Badge color="success">Net 60 Jours</Badge>;
+        return <Badge color="success">60 Jours</Badge>;
       default:
         return <Badge color="light">{terms || "N/A"}</Badge>;
     }
@@ -71,7 +98,7 @@ export default function SuppliersPage() {
               Référentiel Fournisseurs
             </h1>
             <p className="text-sm text-gray-500 dark:text-gray-400">
-              Gestion des partenaires d'achat et conditions de règlement (Vendor Master Data)
+              Gestion des partenaires d'achat et conditions de règlement
             </p>
           </div>
         </div>
@@ -94,7 +121,7 @@ export default function SuppliersPage() {
           <div className="flex items-center justify-between">
             <div>
               <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider">
-                Total Fournisseurs Qualifiés
+                Total Fournisseurs
               </p>
               <p className="mt-2 text-3xl font-extrabold text-gray-900 dark:text-white">
                 {suppliers.length}
@@ -110,7 +137,7 @@ export default function SuppliersPage() {
           <div className="flex items-center justify-between">
             <div>
               <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider">
-                Conditions Standards (Net 30)
+                Règlement 30 Jours
               </p>
               <p className="mt-2 text-3xl font-extrabold text-brand-600 dark:text-brand-400">
                 {suppliers.filter((s) => s.paymentTerms === "NET_30").length}
@@ -126,7 +153,7 @@ export default function SuppliersPage() {
           <div className="flex items-center justify-between">
             <div>
               <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider">
-                Paiements Grands Comptes (Net 60)
+                Règlement 60 Jours
               </p>
               <p className="mt-2 text-3xl font-extrabold text-emerald-600 dark:text-emerald-400">
                 {suppliers.filter((s) => s.paymentTerms === "NET_60").length}
@@ -163,30 +190,31 @@ export default function SuppliersPage() {
             <thead className="border-b border-gray-100 bg-gray-50/75 text-xs uppercase tracking-wider text-gray-400 dark:border-gray-800 dark:bg-gray-800/50">
               <tr>
                 <th className="px-6 py-4">Raison Sociale</th>
-                <th className="px-6 py-4">Identifiant Fiscal (TVA)</th>
-                <th className="px-6 py-4">Conditions Paiement</th>
-                <th className="px-6 py-4">Contact Professionnel</th>
-                <th className="px-6 py-4">Localisation</th>
+                <th className="px-6 py-4">N° TVA</th>
+                <th className="px-6 py-4">Conditions Règlement</th>
+                <th className="px-6 py-4">Contact</th>
+                <th className="px-6 py-4">Adresse</th>
                 <th className="px-6 py-4">Devise</th>
+                <th className="px-6 py-4 text-right">Actions</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100 dark:divide-gray-800">
               {loading ? (
                 <tr>
-                  <td colSpan={6} className="py-12 text-center text-sm text-gray-500">
+                  <td colSpan={7} className="py-12 text-center text-sm text-gray-500">
                     <RefreshCw className="mx-auto h-6 w-6 animate-spin text-brand-500 mb-2" />
                     Chargement des fournisseurs...
                   </td>
                 </tr>
               ) : filteredSuppliers.length === 0 ? (
                 <tr>
-                  <td colSpan={6} className="py-12 text-center">
+                  <td colSpan={7} className="py-12 text-center">
                     <Building2 className="mx-auto h-10 w-10 text-gray-300 dark:text-gray-600 mb-3" />
                     <p className="text-sm font-semibold text-gray-900 dark:text-white">
                       Aucun fournisseur trouvé
                     </p>
                     <p className="text-xs text-gray-500 mt-1">
-                      {searchTerm ? "Aucun résultat pour cette recherche." : "Commencez par ajouter votre premier fournisseur qualifié."}
+                      {searchTerm ? "Aucun résultat pour cette recherche." : "Commencez par ajouter votre premier fournisseur."}
                     </p>
                     {!searchTerm && (
                       <Button onClick={() => setIsModalOpen(true)} className="mt-4 gap-2">
@@ -210,9 +238,6 @@ export default function SuppliersPage() {
                         <div>
                           <p className="font-semibold text-gray-900 dark:text-white">
                             {supplier.name}
-                          </p>
-                          <p className="font-mono text-[11px] text-gray-400">
-                            ID: {supplier.id.substring(0, 8)}...
                           </p>
                         </div>
                       </div>
@@ -259,6 +284,28 @@ export default function SuppliersPage() {
                     <td className="px-6 py-4">
                       <Badge color="light">{supplier.currency || "EUR"}</Badge>
                     </td>
+                    <td className="px-6 py-4 text-right">
+                      <div className="flex items-center justify-end gap-2">
+                        <button
+                          type="button"
+                          onClick={() => setSupplierToEdit(supplier)}
+                          title="Modifier ce fournisseur"
+                          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-gray-200 dark:border-gray-700 text-xs font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+                        >
+                          <Pencil className="h-3.5 w-3.5 text-blue-500" />
+                          <span>Modifier</span>
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setSupplierToDelete(supplier)}
+                          title="Supprimer ce fournisseur"
+                          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-rose-200 dark:border-rose-900/50 text-xs font-medium text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/30 transition-colors"
+                        >
+                          <Trash2 className="h-3.5 w-3.5" />
+                          <span>Supprimer</span>
+                        </button>
+                      </div>
+                    </td>
                   </tr>
                 ))
               )}
@@ -273,7 +320,30 @@ export default function SuppliersPage() {
         onClose={() => setIsModalOpen(false)}
         onSuccess={(created) => {
           setSuppliers((prev) => [created, ...prev]);
+          showSuccess(`Le fournisseur "${created.name}" a été créé avec succès.`);
         }}
+      />
+
+      {/* Edit Modal */}
+      <EditSupplierModal
+        isOpen={!!supplierToEdit}
+        onClose={() => setSupplierToEdit(null)}
+        supplier={supplierToEdit}
+        onSuccess={(updated) => {
+          setSuppliers((prev) => prev.map((s) => (s.id === updated.id ? updated : s)));
+          showSuccess(`Le fournisseur "${updated.name}" a été mis à jour.`);
+        }}
+      />
+
+      {/* Delete Confirmation Modal */}
+      <ConfirmModal
+        isOpen={!!supplierToDelete}
+        title="Confirmer la suppression"
+        message={`Êtes-vous sûr de vouloir supprimer définitivement le fournisseur "${supplierToDelete?.name}" ? Cette action est irréversible.`}
+        confirmLabel="Supprimer définitivement"
+        isLoading={deleteLoading}
+        onConfirm={handleDeleteConfirm}
+        onCancel={() => setSupplierToDelete(null)}
       />
     </div>
   );

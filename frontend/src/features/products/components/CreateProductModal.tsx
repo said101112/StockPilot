@@ -99,10 +99,10 @@ export default function CreateProductModal({ isOpen, onClose, onSuccess }: Props
         </div>
         <div>
           <h3 className="text-lg font-bold text-gray-900 dark:text-white">
-            Nouvel Article (Material Master)
+            Nouvel Article
           </h3>
           <p className="text-xs text-gray-500">
-            Ajout au catalogue des articles et paramétrage des seuils SAP MM
+            Enregistrement au catalogue et paramétrage des stocks
           </p>
         </div>
       </div>
@@ -116,13 +116,13 @@ export default function CreateProductModal({ isOpen, onClose, onSuccess }: Props
 
       <form onSubmit={handleSubmit} className="mt-5 space-y-4">
         <div>
-          <Label htmlFor="name">Désignation de l'Article / Nom du Produit *</Label>
+          <Label htmlFor="name">Désignation de l'Article *</Label>
           <div className="relative mt-1">
             <Input
               id="name"
               name="name"
               type="text"
-              placeholder="Ex: Disque de Frein Ventilé, Câble Blindé XLR..."
+              placeholder="Ex: Disque de Frein Ventilé, Câble Blindé..."
               value={formData.name}
               onChange={handleChange}
               required
@@ -133,7 +133,7 @@ export default function CreateProductModal({ isOpen, onClose, onSuccess }: Props
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
           <div>
             <div className="flex items-center justify-between">
-              <Label htmlFor="sku">Code SKU / Référence Article *</Label>
+              <Label htmlFor="sku">Référence SKU *</Label>
               <button
                 type="button"
                 onClick={generateRandomSku}
@@ -157,7 +157,7 @@ export default function CreateProductModal({ isOpen, onClose, onSuccess }: Props
           </div>
 
           <div>
-            <Label htmlFor="category">Catégorie Article (SAP MM)</Label>
+            <Label htmlFor="category">Catégorie</Label>
             <select
               id="category"
               name="category"
@@ -165,16 +165,16 @@ export default function CreateProductModal({ isOpen, onClose, onSuccess }: Props
               onChange={handleChange}
               className="mt-1 block w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 shadow-sm focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500 dark:border-gray-700 dark:bg-gray-800 dark:text-white"
             >
-              <option value="FINISHED_GOOD">Produit Fini (FERT)</option>
-              <option value="RAW_MATERIAL">Matière Première (ROH)</option>
-              <option value="SEMI_FINISHED">Semi-Fini (HALB)</option>
-              <option value="SPARE_PART">Pièce de Rechange (ERSA)</option>
+              <option value="FINISHED_GOOD">Produit Fini</option>
+              <option value="RAW_MATERIAL">Matière Première</option>
+              <option value="SEMI_FINISHED">Semi-Fini</option>
+              <option value="SPARE_PART">Pièce de Rechange</option>
             </select>
           </div>
         </div>
 
         <div>
-          <Label htmlFor="description">Description Technique / Spécifications</Label>
+          <Label htmlFor="description">Description & Spécifications</Label>
           <textarea
             id="description"
             name="description"
