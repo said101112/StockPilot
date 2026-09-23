@@ -193,12 +193,12 @@ export default function ProductsPage() {
           <table className="w-full text-left text-sm text-gray-600 dark:text-gray-300">
             <thead className="border-b border-gray-100 bg-gray-50/75 text-xs uppercase tracking-wider text-gray-400 dark:border-gray-800 dark:bg-gray-800/50">
               <tr>
-                <th className="px-6 py-4">Référence SKU</th>
-                <th className="px-6 py-4">Désignation</th>
-                <th className="px-6 py-4">Catégorie</th>
-                <th className="px-6 py-4">Prix Unitaire</th>
-                <th className="px-6 py-4">Unité</th>
-                <th className="px-6 py-4 text-right">Actions</th>
+                <th className="px-4 py-3.5 sm:px-5">Référence SKU</th>
+                <th className="px-4 py-3.5 sm:px-5">Désignation</th>
+                <th className="px-4 py-3.5 sm:px-5">Catégorie</th>
+                <th className="px-4 py-3.5 sm:px-5">Prix Unitaire</th>
+                <th className="px-4 py-3.5 sm:px-5">Unité</th>
+                <th className="px-4 py-3.5 sm:px-5 text-right whitespace-nowrap">Actions</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100 dark:divide-gray-800">
@@ -235,7 +235,7 @@ export default function ProductsPage() {
                     key={product.id}
                     className="transition-colors hover:bg-gray-50/50 dark:hover:bg-gray-800/50"
                   >
-                    <td className="px-6 py-4">
+                    <td className="px-4 py-3.5 sm:px-5">
                       <div className="flex items-center gap-2">
                         <Barcode className="h-4 w-4 text-gray-400" />
                         <span className="font-mono font-bold text-gray-900 dark:text-white">
@@ -243,7 +243,7 @@ export default function ProductsPage() {
                         </span>
                       </div>
                     </td>
-                    <td className="px-6 py-4">
+                    <td className="px-4 py-3.5 sm:px-5">
                       <p className="font-semibold text-gray-900 dark:text-white">
                         {product.name}
                       </p>
@@ -253,22 +253,22 @@ export default function ProductsPage() {
                         </p>
                       )}
                     </td>
-                    <td className="px-6 py-4">
+                    <td className="px-4 py-3.5 sm:px-5">
                       {getCategoryBadge(product.category)}
                     </td>
-                    <td className="px-6 py-4 font-mono font-bold text-gray-900 dark:text-white">
+                    <td className="px-4 py-3.5 sm:px-5 font-mono font-bold text-gray-900 dark:text-white">
                       {product.price.toLocaleString("fr-FR", {
                         minimumFractionDigits: 2,
                         maximumFractionDigits: 2,
                       })}{" "}
                       {product.currency || "EUR"}
                     </td>
-                    <td className="px-6 py-4">
+                    <td className="px-4 py-3.5 sm:px-5">
                       <span className="inline-flex items-center rounded-md bg-gray-100 px-2 py-1 text-xs font-semibold text-gray-700 dark:bg-gray-800 dark:text-gray-300">
                         {product.unitOfMeasure || "PCS"}
                       </span>
                     </td>
-                    <td className="px-6 py-4 text-right">
+                    <td className="px-4 py-3.5 sm:px-5 text-right whitespace-nowrap">
                       <div className="flex items-center justify-end gap-2">
                         <button
                           type="button"

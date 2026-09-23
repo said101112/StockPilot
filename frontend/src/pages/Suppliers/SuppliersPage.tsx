@@ -189,13 +189,13 @@ export default function SuppliersPage() {
           <table className="w-full text-left text-sm text-gray-600 dark:text-gray-300">
             <thead className="border-b border-gray-100 bg-gray-50/75 text-xs uppercase tracking-wider text-gray-400 dark:border-gray-800 dark:bg-gray-800/50">
               <tr>
-                <th className="px-6 py-4">Raison Sociale</th>
-                <th className="px-6 py-4">N° TVA</th>
-                <th className="px-6 py-4">Conditions Règlement</th>
-                <th className="px-6 py-4">Contact</th>
-                <th className="px-6 py-4">Adresse</th>
-                <th className="px-6 py-4">Devise</th>
-                <th className="px-6 py-4 text-right">Actions</th>
+                <th className="px-4 py-3.5 sm:px-5">Raison Sociale</th>
+                <th className="px-4 py-3.5 sm:px-5">N° TVA</th>
+                <th className="px-4 py-3.5 sm:px-5">Conditions Règlement</th>
+                <th className="px-4 py-3.5 sm:px-5">Contact</th>
+                <th className="px-4 py-3.5 sm:px-5">Adresse</th>
+                <th className="px-4 py-3.5 sm:px-5">Devise</th>
+                <th className="px-4 py-3.5 sm:px-5 text-right whitespace-nowrap">Actions</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100 dark:divide-gray-800">
@@ -230,7 +230,7 @@ export default function SuppliersPage() {
                     key={supplier.id}
                     className="transition-colors hover:bg-gray-50/50 dark:hover:bg-gray-800/50"
                   >
-                    <td className="px-6 py-4">
+                    <td className="px-4 py-3.5 sm:px-5">
                       <div className="flex items-center gap-3">
                         <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-brand-50 font-bold text-brand-600 dark:bg-brand-950/40 dark:text-brand-400">
                           {supplier.name.substring(0, 2).toUpperCase()}
@@ -242,7 +242,7 @@ export default function SuppliersPage() {
                         </div>
                       </div>
                     </td>
-                    <td className="px-6 py-4 font-mono text-xs">
+                    <td className="px-4 py-3.5 sm:px-5 font-mono text-xs">
                       {supplier.taxNumber ? (
                         <span className="rounded bg-gray-100 px-2 py-0.5 font-medium text-gray-700 dark:bg-gray-800 dark:text-gray-300">
                           {supplier.taxNumber}
@@ -251,40 +251,40 @@ export default function SuppliersPage() {
                         <span className="text-gray-400 italic">Non renseigné</span>
                       )}
                     </td>
-                    <td className="px-6 py-4">
+                    <td className="px-4 py-3.5 sm:px-5">
                       {getPaymentTermBadge(supplier.paymentTerms)}
                     </td>
-                    <td className="px-6 py-4">
+                    <td className="px-4 py-3.5 sm:px-5">
                       <div className="space-y-1">
                         <div className="flex items-center gap-1.5 text-xs">
-                          <Mail className="h-3.5 w-3.5 text-gray-400" />
+                          <Mail className="h-3.5 w-3.5 text-gray-400 shrink-0" />
                           <a
                             href={`mailto:${supplier.email}`}
-                            className="text-brand-600 hover:underline dark:text-brand-400"
+                            className="text-brand-600 hover:underline dark:text-brand-400 truncate max-w-[180px]"
                           >
                             {supplier.email}
                           </a>
                         </div>
                         {supplier.phoneNumber && (
                           <div className="flex items-center gap-1.5 text-xs text-gray-500">
-                            <Phone className="h-3.5 w-3.5 text-gray-400" />
+                            <Phone className="h-3.5 w-3.5 text-gray-400 shrink-0" />
                             <span>{supplier.phoneNumber}</span>
                           </div>
                         )}
                       </div>
                     </td>
-                    <td className="px-6 py-4">
+                    <td className="px-4 py-3.5 sm:px-5">
                       <div className="flex items-center gap-1.5 text-xs text-gray-500">
                         <MapPin className="h-3.5 w-3.5 text-gray-400 shrink-0" />
-                        <span className="truncate max-w-[180px]">
+                        <span className="truncate max-w-[160px]">
                           {supplier.address || "Non renseignée"}
                         </span>
                       </div>
                     </td>
-                    <td className="px-6 py-4">
+                    <td className="px-4 py-3.5 sm:px-5">
                       <Badge color="light">{supplier.currency || "EUR"}</Badge>
                     </td>
-                    <td className="px-6 py-4 text-right">
+                    <td className="px-4 py-3.5 sm:px-5 text-right whitespace-nowrap">
                       <div className="flex items-center justify-end gap-2">
                         <button
                           type="button"
