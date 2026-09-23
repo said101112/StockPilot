@@ -2,15 +2,19 @@ export type RequisitionStatus = "DRAFT" | "SUBMITTED" | "APPROVED" | "REJECTED" 
 
 export interface PurchaseRequisition {
   id: string;
-  requisitionNumber: string;
+  prNumber: string;
+  requisitionNumber?: string;
   productId: string;
   warehouseId: string;
   requestedQuantity: number;
   status: RequisitionStatus;
-  notes: string;
+  justification?: string;
+  notes?: string;
   rejectionReason?: string;
   requestedDeliveryDate?: string;
-  requestedAt: string;
+  requestedAt?: string;
+  createdAt?: string;
+  submittedAt?: string;
 }
 
 export type PurchaseOrderStatus = "DRAFT" | "ISSUED" | "PARTIALLY_RECEIVED" | "COMPLETED" | "CANCELLED";

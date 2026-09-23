@@ -181,7 +181,7 @@ export default function RequisitionsPage() {
                       className="hover:bg-gray-50/50 transition-colors dark:hover:bg-gray-800/30"
                     >
                       <td className="px-6 py-4 font-mono font-bold text-gray-900 dark:text-white">
-                        {req.requisitionNumber}
+                        {req.prNumber || req.requisitionNumber || `DA-${req.id.substring(0, 6).toUpperCase()}`}
                       </td>
                       <td className="px-6 py-4">
                         <div className="flex flex-col">
@@ -198,7 +198,7 @@ export default function RequisitionsPage() {
                       </td>
                       <td className="px-6 py-4">{getStatusBadge(req.status)}</td>
                       <td className="px-6 py-4 text-xs text-gray-500">
-                        {req.notes || "Réapprovisionnement standard"}
+                        {req.justification || req.notes || "Réapprovisionnement standard"}
                       </td>
                       <td className="px-6 py-4 text-right space-x-2">
                         {req.status === "DRAFT" && (

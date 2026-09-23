@@ -136,7 +136,7 @@ export default function CreateOrderModal({
         <div className="mt-4 rounded-xl border border-gray-100 bg-gray-50/70 p-3.5 text-xs dark:border-gray-800 dark:bg-gray-800/40">
           <div className="flex justify-between items-center">
             <span className="font-semibold text-gray-700 dark:text-gray-300">
-              Demande Réf: <span className="font-mono">{requisition.requisitionNumber}</span>
+              Demande Réf: <span className="font-mono">{requisition.prNumber || requisition.requisitionNumber || `DA-${requisition.id.substring(0, 6).toUpperCase()}`}</span>
             </span>
             <span className="rounded-md bg-brand-100 px-2 py-0.5 font-bold text-brand-800 dark:bg-brand-950 dark:text-brand-300">
               {requisition.requestedQuantity} PCS
