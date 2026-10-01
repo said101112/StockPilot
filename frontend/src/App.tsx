@@ -11,32 +11,46 @@ import MovementsPage from "./pages/Movements/MovementsPage";
 import SuppliersPage from "./pages/Suppliers/SuppliersPage";
 import ProductsPage from "./pages/Products/ProductsPage";
 import NotFound from "./pages/OtherPage/NotFound";
+import Forbidden from "./pages/OtherPage/Forbidden";
+import LoginPage from "./pages/Auth/LoginPage";
+import SignUpPage from "./pages/Auth/SignUpPage";
 
 import { ToastProvider } from "./shared/context/ToastContext";
+import { AuthProvider } from "./context/AuthContext";
+import ProtectedRoute from "./components/auth/ProtectedRoute";
 
 export default function App() {
   return (
-    <ToastProvider>
-      <Router>
-        <ScrollToTop />
-        <Routes>
-          {/* Main ERP Layout */}
-          <Route element={<AppLayout />}>
-            <Route index path="/" element={<DashboardPage />} />
-            <Route path="/inventory" element={<InventoryPage />} />
-            <Route path="/products" element={<ProductsPage />} />
-            <Route path="/suppliers" element={<SuppliersPage />} />
-            <Route path="/requisitions" element={<RequisitionsPage />} />
-            <Route path="/orders" element={<OrdersPage />} />
-            <Route path="/goods-receipt" element={<GoodsReceiptPage />} />
-            <Route path="/alerts" element={<AlertsPage />} />
-            <Route path="/movements" element={<MovementsPage />} />
-          </Route>
+    <AuthProvider>
+      <ToastProvider>
+        <Router>
+          <ScrollToTop />
+          <Routes>
+            {/* Public routes */}
+            <Route path="/login" element={<LoginPage />} />
+            <Route path="/signup" element={<SignUpPage />} />
+            <Route path="/forbidden" element={<Forbidden />} />
 
-          {/* 404 Fallback */}
-          <Route path="*" element={<NotFound />} />
-        </Routes>
-      </Router>
-    </ToastProvider>
+            {/* Protected ERP Layout */}
+            <Route element={<ProtectedRoute />}>
+              <Route element={<AppLayout />}>
+                <Route index path="/" element={<DashboardPage />} />
+                <Route path="/inventory" element={<InventoryPage />} />
+                <Route path="/products" element={<ProductsPage />} />
+                <Route path="/suppliers" element={<SuppliersPage />} />
+                <Route path="/requisitions" element={<RequisitionsPage />} />
+                <Route path="/orders" element={<OrdersPage />} />
+                <Route path="/goods-receipt" element={<GoodsReceiptPage />} />
+                <Route path="/alerts" element={<AlertsPage />} />
+                <Route path="/movements" element={<MovementsPage />} />
+              </Route>
+            </Route>
+
+            {/* Fallback */}
+            <Route path="*" element={<NotFound />} />
+          </Routes>
+        </Router>
+      </ToastProvider>
+    </AuthProvider>
   );
 }
