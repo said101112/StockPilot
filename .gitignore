@@ -51,3 +51,7 @@ pnpm-debug.log*
 
 # Documentation
 docs/
+
+# Local startup scripts
+start.bat
+start.sh
