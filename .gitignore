@@ -48,3 +48,6 @@ pnpm-debug.log*
 
 # Logs
 *.log
+
+# Documentation
+docs/

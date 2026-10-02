@@ -1,8 +1,6 @@
 import { useEffect, useState } from "react";
 import Button from "@/components/ui/button/Button";
-import Badge from "@/components/ui/badge/Badge";
 import { procurementApi } from "@/features/procurement/api/procurementApi";
-import { suppliersApi } from "@/features/suppliers/api/suppliersApi";
 import type { PurchaseOrder } from "@/features/procurement/domain/types";
 import type { Supplier } from "@/features/suppliers/domain/types";
 import { ConfirmModal } from "@/components/common/ConfirmModal";
@@ -21,12 +19,31 @@ import {
 } from "lucide-react";
 
 
+import { ModernStatusBadge } from "@/components/common/ModernStatusBadge";
+import { DateCell } from "@/components/common/DateCell";
+import { usePagination } from "@/hooks/usePagination";
+import { Pagination } from "@/components/common/Pagination";
+import { masterDataCache } from "@/shared/cache/masterDataCache";
+
 export default function OrdersPage() {
   const [orders, setOrders] = useState<PurchaseOrder[]>([]);
   const [supplierMap, setSupplierMap] = useState<Record<string, Supplier>>({});
   const [loading, setLoading] = useState<boolean>(true);
   const [actionLoading, setActionLoading] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+
+  // Pagination hook
+  const {
+    currentPage,
+    pageSize,
+    totalPages,
+    totalItems,
+    paginatedItems,
+    startIndex,
+    endIndex,
+    goToPage,
+    changePageSize,
+  } = usePagination(orders, { initialPageSize: 10 });
 
   // Cancel order modal
   const [orderToCancel, setOrderToCancel] = useState<PurchaseOrder | null>(null);
@@ -41,12 +58,20 @@ export default function OrdersPage() {
     try {
       setLoading(true);
       setError(null);
+      // Récupération à la demande avec cache des fournisseurs
       const [ordersData, suppliersData] = await Promise.all([
         procurementApi.getOrders(),
-        suppliersApi.getAll().catch(() => []),
+        masterDataCache.getSuppliers(),
       ]);
 
-      setOrders(ordersData || []);
+      // Tri strict : Les commandes les plus récentes en premier
+      const sorted = [...(ordersData || [])].sort((a, b) => {
+        const timeA = a.createdAt || a.issuedAt ? new Date(a.createdAt || a.issuedAt || "").getTime() : 0;
+        const timeB = b.createdAt || b.issuedAt ? new Date(b.createdAt || b.issuedAt || "").getTime() : 0;
+        if (timeB !== timeA) return timeB - timeA;
+        return (b.poNumber || "").localeCompare(a.poNumber || "");
+      });
+      setOrders(sorted);
 
       const sMap: Record<string, Supplier> = {};
       suppliersData.forEach((s) => {
@@ -92,23 +117,6 @@ export default function OrdersPage() {
     }
   };
 
-  const getStatusBadge = (status: string) => {
-    switch (status) {
-      case "DRAFT":
-        return <Badge color="light">Brouillon</Badge>;
-      case "ISSUED":
-        return <Badge color="primary">Envoyée au Fournisseur</Badge>;
-      case "PARTIALLY_RECEIVED":
-        return <Badge color="warning">Réception Partielle</Badge>;
-      case "COMPLETED":
-        return <Badge color="success">Livrée & Soldée</Badge>;
-      case "CANCELLED":
-        return <Badge color="error">Annulée</Badge>;
-      default:
-        return <Badge color="light">{status}</Badge>;
-    }
-  };
-
   return (
     <div className="space-y-6">
       {/* En-tête */}
@@ -147,9 +155,10 @@ export default function OrdersPage() {
             <thead className="border-b border-gray-200 bg-gray-50/75 text-xs font-semibold uppercase tracking-wider text-gray-500 dark:border-gray-800 dark:bg-gray-800/50 dark:text-gray-400">
               <tr>
                 <th className="px-3 sm:px-4 py-3.5">N° Commande</th>
+                <th className="px-3 sm:px-4 py-3.5">Date Émission / Création</th>
                 <th className="px-3 sm:px-4 py-3.5">Fournisseur</th>
                 <th className="px-3 sm:px-4 py-3.5">Montant Total</th>
-                <th className="px-3 sm:px-4 py-3.5">Statut</th>
+                <th className="px-3 sm:px-4 py-3.5 text-center">Statut</th>
                 <th className="px-3 sm:px-4 py-3.5">Date Livraison Prévue</th>
                 <th className="px-3 sm:px-4 py-3.5 text-right whitespace-nowrap">Actions</th>
               </tr>
@@ -157,14 +166,14 @@ export default function OrdersPage() {
             <tbody className="divide-y divide-gray-100 dark:divide-gray-800">
               {loading ? (
                 <tr>
-                  <td colSpan={6} className="px-4 py-12 text-center text-gray-500">
+                  <td colSpan={7} className="px-4 py-12 text-center text-gray-500">
                     <RefreshCw className="mx-auto h-6 w-6 animate-spin text-brand-500 mb-2" />
                     Chargement des commandes en cours...
                   </td>
                 </tr>
               ) : orders.length === 0 ? (
                 <tr>
-                  <td colSpan={6} className="px-4 py-12 text-center">
+                  <td colSpan={7} className="px-4 py-12 text-center">
                     <ShoppingBag className="mx-auto h-10 w-10 text-gray-300 dark:text-gray-600 mb-2" />
                     <p className="font-semibold text-gray-900 dark:text-white">Aucune commande d'achat</p>
                     <p className="text-xs text-gray-400 mt-1">
@@ -173,7 +182,7 @@ export default function OrdersPage() {
                   </td>
                 </tr>
               ) : (
-                orders.map((po) => {
+                paginatedItems.map((po) => {
                   const supplier = supplierMap[po.supplierId];
                   return (
                     <tr
@@ -182,6 +191,9 @@ export default function OrdersPage() {
                     >
                       <td className="px-3 sm:px-4 py-3 font-mono font-bold text-gray-900 dark:text-white">
                         {po.poNumber}
+                      </td>
+                      <td className="px-3 sm:px-4 py-3">
+                        <DateCell date={po.createdAt} updatedDate={po.issuedAt} />
                       </td>
                       <td className="px-3 sm:px-4 py-3">
                         <div className="flex items-center gap-2">
@@ -198,7 +210,9 @@ export default function OrdersPage() {
                         })}{" "}
                         {po.currency || "EUR"}
                       </td>
-                      <td className="px-3 sm:px-4 py-3">{getStatusBadge(po.status)}</td>
+                      <td className="px-3 sm:px-4 py-3 text-center">
+                        <ModernStatusBadge status={po.status} fixedWidth={true} />
+                      </td>
                       <td className="px-3 sm:px-4 py-3 text-xs font-medium text-gray-600 dark:text-gray-300">
                         {po.expectedDeliveryDate
                           ? new Date(po.expectedDeliveryDate).toLocaleDateString("fr-FR", {
@@ -281,6 +295,18 @@ export default function OrdersPage() {
             </tbody>
           </table>
         </div>
+
+        {/* Contrôles de pagination */}
+        <Pagination
+          currentPage={currentPage}
+          totalPages={totalPages}
+          totalItems={totalItems}
+          startIndex={startIndex}
+          endIndex={endIndex}
+          pageSize={pageSize}
+          onPageChange={goToPage}
+          onPageSizeChange={changePageSize}
+        />
       </div>
 
       {/* Confirmation Modal */}

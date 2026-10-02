@@ -1,14 +1,13 @@
 import { useEffect, useState } from "react";
 import Button from "@/components/ui/button/Button";
-import Badge from "@/components/ui/badge/Badge";
 import { procurementApi } from "@/features/procurement/api/procurementApi";
-import { productsApi } from "@/features/products/api/productsApi";
 import type { PurchaseRequisition } from "@/features/procurement/domain/types";
 import type { Product } from "@/features/products/domain/types";
 import CreateRequisitionModal from "@/features/procurement/components/CreateRequisitionModal";
 import CreateOrderModal from "@/features/procurement/components/CreateOrderModal";
 import { ConfirmModal } from "@/components/common/ConfirmModal";
 import { useToast } from "@/shared/context/ToastContext";
+import { useAuth } from "@/hooks/useAuth";
 import {
   FileText,
   RefreshCw,
@@ -21,12 +20,34 @@ import {
   Trash2,
 } from "lucide-react";
 
+import { ModernStatusBadge } from "@/components/common/ModernStatusBadge";
+import { DateCell } from "@/components/common/DateCell";
+import { usePagination } from "@/hooks/usePagination";
+import { Pagination } from "@/components/common/Pagination";
+import { masterDataCache } from "@/shared/cache/masterDataCache";
+
 export default function RequisitionsPage() {
+  const { user } = useAuth();
+  const isApprover = user?.role === "ADMIN" || user?.role === "MANAGER";
+
   const [requisitions, setRequisitions] = useState<PurchaseRequisition[]>([]);
   const [productMap, setProductMap] = useState<Record<string, Product>>({});
   const [loading, setLoading] = useState<boolean>(true);
   const [actionLoading, setActionLoading] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+
+  // Pagination hook
+  const {
+    currentPage,
+    pageSize,
+    totalPages,
+    totalItems,
+    paginatedItems,
+    startIndex,
+    endIndex,
+    goToPage,
+    changePageSize,
+  } = usePagination(requisitions, { initialPageSize: 10 });
 
   // Modals state
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
@@ -41,12 +62,22 @@ export default function RequisitionsPage() {
     try {
       setLoading(true);
       setError(null);
+      // Récupération à la demande avec cache maître pour éviter les requêtes redondantes
       const [reqData, prods] = await Promise.all([
         procurementApi.getRequisitions(),
-        productsApi.getAll().catch(() => []),
+        masterDataCache.getProducts(),
       ]);
 
-      setRequisitions(reqData || []);
+      // Tri strict : Les plus récentes en premier (par date de création puis par N° de DA)
+      const sorted = [...(reqData || [])].sort((a, b) => {
+        const timeA = a.createdAt ? new Date(a.createdAt).getTime() : 0;
+        const timeB = b.createdAt ? new Date(b.createdAt).getTime() : 0;
+        if (timeB !== timeA) return timeB - timeA;
+        return (b.prNumber || b.requisitionNumber || "").localeCompare(
+          a.prNumber || a.requisitionNumber || ""
+        );
+      });
+      setRequisitions(sorted);
 
       const pMap: Record<string, Product> = {};
       prods.forEach((p) => {
@@ -110,23 +141,6 @@ export default function RequisitionsPage() {
     setIsOrderModalOpen(true);
   };
 
-  const getStatusBadge = (status: string) => {
-    switch (status) {
-      case "DRAFT":
-        return <Badge color="light">Brouillon</Badge>;
-      case "SUBMITTED":
-        return <Badge color="warning">En attente d'approbation</Badge>;
-      case "APPROVED":
-        return <Badge color="success">Approuvée</Badge>;
-      case "ORDERED":
-        return <Badge color="primary">Commande Créée</Badge>;
-      case "REJECTED":
-        return <Badge color="error">Refusée</Badge>;
-      default:
-        return <Badge color="light">{status}</Badge>;
-    }
-  };
-
   return (
     <div className="space-y-6">
       {/* En-tête */}
@@ -171,9 +185,10 @@ export default function RequisitionsPage() {
             <thead className="border-b border-gray-200 bg-gray-50/75 text-xs font-semibold uppercase tracking-wider text-gray-500 dark:border-gray-800 dark:bg-gray-800/50 dark:text-gray-400">
               <tr>
                 <th className="px-3 sm:px-4 py-3.5">N° Demande</th>
+                <th className="px-3 sm:px-4 py-3.5">Date de Demande</th>
                 <th className="px-3 sm:px-4 py-3.5">Article & Référence</th>
                 <th className="px-3 sm:px-4 py-3.5 text-center">Quantité Demandée</th>
-                <th className="px-3 sm:px-4 py-3.5">Statut</th>
+                <th className="px-3 sm:px-4 py-3.5 text-center">Statut</th>
                 <th className="px-3 sm:px-4 py-3.5">Motif / Justification</th>
                 <th className="px-3 sm:px-4 py-3.5 text-right whitespace-nowrap">Actions</th>
               </tr>
@@ -181,14 +196,14 @@ export default function RequisitionsPage() {
             <tbody className="divide-y divide-gray-100 dark:divide-gray-800">
               {loading ? (
                 <tr>
-                  <td colSpan={6} className="px-4 py-12 text-center text-gray-500">
+                  <td colSpan={7} className="px-4 py-12 text-center text-gray-500">
                     <RefreshCw className="mx-auto h-6 w-6 animate-spin text-brand-500 mb-2" />
                     Chargement des demandes d'achat...
                   </td>
                 </tr>
               ) : requisitions.length === 0 ? (
                 <tr>
-                  <td colSpan={6} className="px-4 py-12 text-center">
+                  <td colSpan={7} className="px-4 py-12 text-center">
                     <FilePlus className="mx-auto h-10 w-10 text-gray-300 dark:text-gray-600 mb-2" />
                     <p className="font-semibold text-gray-900 dark:text-white">Aucune demande d'achat</p>
                     <p className="text-xs text-gray-400 mt-1">
@@ -197,7 +212,7 @@ export default function RequisitionsPage() {
                   </td>
                 </tr>
               ) : (
-                requisitions.map((req) => {
+                paginatedItems.map((req) => {
                   const product = productMap[req.productId];
                   return (
                     <tr
@@ -206,6 +221,9 @@ export default function RequisitionsPage() {
                     >
                       <td className="px-3 sm:px-4 py-3 font-mono font-bold text-gray-900 dark:text-white">
                         {req.prNumber || req.requisitionNumber || `DA-${req.id.substring(0, 6).toUpperCase()}`}
+                      </td>
+                      <td className="px-3 sm:px-4 py-3">
+                        <DateCell date={req.createdAt} updatedDate={req.submittedAt} />
                       </td>
                       <td className="px-3 sm:px-4 py-3">
                         <div className="flex flex-col">
@@ -220,7 +238,9 @@ export default function RequisitionsPage() {
                       <td className="px-3 sm:px-4 py-3 text-center font-bold text-gray-900 dark:text-white font-mono">
                         {req.requestedQuantity} {product?.unitOfMeasure || "PCS"}
                       </td>
-                      <td className="px-3 sm:px-4 py-3">{getStatusBadge(req.status)}</td>
+                      <td className="px-3 sm:px-4 py-3 text-center">
+                        <ModernStatusBadge status={req.status} fixedWidth={true} />
+                      </td>
                       <td className="px-3 sm:px-4 py-3 text-xs text-gray-500 max-w-xs truncate">
                         {req.justification || req.notes || "Réapprovisionnement standard"}
                       </td>
@@ -248,39 +268,59 @@ export default function RequisitionsPage() {
                             </>
                           )}
                           {req.status === "SUBMITTED" && (
-                            <button
-                              type="button"
-                              onClick={() => handleApprove(req.id)}
-                              disabled={actionLoading === req.id}
-                              title="Valider et approuver la demande"
-                              className="flex h-8 w-8 items-center justify-center rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white shadow-sm transition-colors disabled:opacity-50"
-                            >
-                              <CheckCircle2 className="h-4 w-4" />
-                            </button>
+                            isApprover ? (
+                              <button
+                                type="button"
+                                onClick={() => handleApprove(req.id)}
+                                disabled={actionLoading === req.id}
+                                title="Valider et approuver la demande (Acheteur/Manager)"
+                                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold shadow-sm transition-colors disabled:opacity-50"
+                              >
+                                <CheckCircle2 className="h-4 w-4" />
+                                <span>Approuver</span>
+                              </button>
+                            ) : (
+                              <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium bg-amber-50 text-amber-700 dark:bg-amber-950/40 dark:text-amber-400 border border-amber-200 dark:border-amber-800/40">
+                                Validation Achat
+                              </span>
+                            )
                           )}
                           {req.status === "APPROVED" && (
-                            <button
-                              type="button"
-                              onClick={() => openOrderModal(req)}
-                              title="Générer le Bon de Commande Fournisseur"
-                              className="flex h-8 w-8 items-center justify-center rounded-lg bg-brand-600 hover:bg-brand-700 text-white shadow-sm transition-colors"
-                            >
-                              <ShoppingCart className="h-4 w-4" />
-                            </button>
+                            isApprover ? (
+                              <button
+                                type="button"
+                                onClick={() => openOrderModal(req)}
+                                title="Générer le Bon de Commande Fournisseur"
+                                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-brand-600 hover:bg-brand-700 text-white text-xs font-semibold shadow-sm transition-colors"
+                              >
+                                <ShoppingCart className="h-4 w-4" />
+                                <span>Créer Commande</span>
+                              </button>
+                            ) : (
+                              <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium bg-emerald-50 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800/40">
+                                Prêt Commande
+                              </span>
+                            )
                           )}
                           {req.status === "REJECTED" && (
-                            <button
-                              type="button"
-                              onClick={() => setReqToDelete(req)}
-                              title="Supprimer la demande rejetée"
-                              className="flex h-8 w-8 items-center justify-center rounded-lg border border-rose-200 dark:border-rose-900/50 text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/30 transition-colors"
-                            >
-                              <Trash2 className="h-3.5 w-3.5" />
-                            </button>
+                            isApprover ? (
+                              <button
+                                type="button"
+                                onClick={() => setReqToDelete(req)}
+                                title="Supprimer la demande rejetée"
+                                className="flex h-8 w-8 items-center justify-center rounded-lg border border-rose-200 dark:border-rose-900/50 text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/30 transition-colors"
+                              >
+                                <Trash2 className="h-3.5 w-3.5" />
+                              </button>
+                            ) : (
+                              <span className="text-xs text-rose-500 font-medium">
+                                Rejetée
+                              </span>
+                            )
                           )}
                           {req.status === "ORDERED" && (
-                            <span className="inline-flex items-center gap-1 text-xs text-brand-600 font-semibold dark:text-brand-400">
-                              <CheckCircle2 className="h-3.5 w-3.5" />
+                            <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold bg-blue-50 text-blue-700 dark:bg-blue-950/40 dark:text-blue-300 border border-blue-200 dark:border-blue-800/40">
+                              <CheckCircle2 className="h-3.5 w-3.5 text-blue-600" />
                               Commandée
                             </span>
                           )}
@@ -293,6 +333,18 @@ export default function RequisitionsPage() {
             </tbody>
           </table>
         </div>
+
+        {/* Contrôles de pagination */}
+        <Pagination
+          currentPage={currentPage}
+          totalPages={totalPages}
+          totalItems={totalItems}
+          startIndex={startIndex}
+          endIndex={endIndex}
+          pageSize={pageSize}
+          onPageChange={goToPage}
+          onPageSizeChange={changePageSize}
+        />
       </div>
 
       {/* Modals */}

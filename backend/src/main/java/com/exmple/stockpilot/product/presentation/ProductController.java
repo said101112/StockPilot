@@ -19,6 +19,7 @@ import com.exmple.stockpilot.product.domain.valueobject.ProductCategory;
 
 import com.exmple.stockpilot.product.application.port.in.DeleteProductUseCase;
 import com.exmple.stockpilot.product.application.port.in.UpdateProductUseCase;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 
@@ -28,6 +29,7 @@ import org.springframework.web.bind.annotation.PutMapping;
  */
 @RestController
 @RequestMapping("/api/products")
+@PreAuthorize("hasAnyRole('ADMIN','MANAGER','USER')")
 public class ProductController {
 
     private final CreateProductUseCase createProductUseCase;
@@ -47,17 +49,20 @@ public class ProductController {
         this.deleteProductUseCase = deleteProductUseCase;
     }
 
+    @PreAuthorize("hasRole('ADMIN')")
     @PostMapping
     public ResponseEntity<ProductResponse> createProduct(@RequestBody CreateProductRequest request) {
         ProductResponse response = createProductUseCase.create(request.toCommand());
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }
 
+    @PreAuthorize("hasRole('ADMIN')")
     @PutMapping("/{id}")
     public ResponseEntity<ProductResponse> updateProduct(@PathVariable UUID id, @RequestBody UpdateProductRequest request) {
         return ResponseEntity.ok(updateProductUseCase.update(id, request));
     }
 
+    @PreAuthorize("hasRole('ADMIN')")
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> deleteProduct(@PathVariable UUID id) {
         deleteProductUseCase.delete(id);

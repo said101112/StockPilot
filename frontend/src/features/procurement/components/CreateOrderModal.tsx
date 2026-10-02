@@ -5,10 +5,20 @@ import Input from "@/components/form/input/InputField";
 import Label from "@/components/form/Label";
 import { procurementApi } from "../api/procurementApi";
 import { suppliersApi } from "@/features/suppliers/api/suppliersApi";
+import { httpClient } from "@/shared/api/httpClient";
 import type { PurchaseRequisition } from "../domain/types";
 import type { Supplier } from "@/features/suppliers/domain/types";
 import type { Product } from "@/features/products/domain/types";
-import { ShoppingCart, CheckCircle, AlertCircle } from "lucide-react";
+import {
+  ShoppingCart,
+  CheckCircle,
+  AlertCircle,
+  Star,
+  Truck,
+  Tag,
+  Percent,
+  Info,
+} from "lucide-react";
 
 interface Props {
   isOpen: boolean;
@@ -16,6 +26,24 @@ interface Props {
   onSuccess: () => void;
   requisition: PurchaseRequisition | null;
   product?: Product;
+}
+
+export interface PurchasingInfoRecord {
+  id: string;
+  productId: string;
+  productName: string;
+  productSku: string;
+  supplierId: string;
+  supplierName: string;
+  supplierPartNumber: string;
+  baseUnitPrice: number;
+  currency: string;
+  leadTimeDays: number;
+  minOrderQuantity: number;
+  discountTierQuantity: number;
+  discountPercentage: number;
+  preferred: boolean;
+  active: boolean;
 }
 
 export default function CreateOrderModal({
@@ -26,6 +54,7 @@ export default function CreateOrderModal({
   product,
 }: Props) {
   const [suppliers, setSuppliers] = useState<Supplier[]>([]);
+  const [pirList, setPirList] = useState<PurchasingInfoRecord[]>([]);
   const [loadingSuppliers, setLoadingSuppliers] = useState<boolean>(false);
   const [selectedSupplierId, setSelectedSupplierId] = useState<string>("");
   const [unitPrice, setUnitPrice] = useState<string>("0");
@@ -33,35 +62,81 @@ export default function CreateOrderModal({
   const [loading, setLoading] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
-    if (isOpen) {
-      loadSuppliers();
-      if (product) {
-        setUnitPrice(product.price.toString());
-      }
-      if (requisition?.requestedDeliveryDate) {
-        setDeliveryDate(requisition.requestedDeliveryDate);
-      } else {
-        const d = new Date();
-        d.setDate(d.getDate() + 5);
-        setDeliveryDate(d.toISOString().split("T")[0]);
-      }
-    }
-  }, [isOpen, requisition, product]);
+  // PIR actuellement actif pour le fournisseur sélectionné
+  const activePir = pirList.find((p) => p.supplierId === selectedSupplierId);
 
-  const loadSuppliers = async () => {
+  const computeDeliveryDate = (leadDays: number) => {
+    const d = new Date();
+    d.setDate(d.getDate() + Math.max(1, leadDays));
+    return d.toISOString().split("T")[0];
+  };
+
+  const computeEffectivePrice = (pir: PurchasingInfoRecord, qty: number): number => {
+    if (
+      pir.discountTierQuantity > 0 &&
+      qty >= pir.discountTierQuantity &&
+      pir.discountPercentage > 0
+    ) {
+      const discounted = pir.baseUnitPrice * (1 - pir.discountPercentage / 100);
+      return Math.round(discounted * 100) / 100;
+    }
+    return pir.baseUnitPrice;
+  };
+
+  useEffect(() => {
+    if (isOpen && requisition) {
+      loadData(requisition);
+    }
+  }, [isOpen, requisition]);
+
+  const loadData = async (req: PurchaseRequisition) => {
     try {
       setLoadingSuppliers(true);
       setError(null);
-      const data = await suppliersApi.getAll();
-      setSuppliers(data || []);
-      if (data && data.length > 0) {
-        setSelectedSupplierId(data[0].id);
+
+      // 1. Charger en parallèle la liste complète des fournisseurs et les PIR pour cet article
+      const [allSuppliers, pirs] = await Promise.all([
+        suppliersApi.getAll().catch(() => []),
+        httpClient
+          .get<PurchasingInfoRecord[]>(`/purchasing-info-records/product/${req.productId}`)
+          .catch(() => []),
+      ]);
+
+      setSuppliers(allSuppliers || []);
+      setPirList(pirs || []);
+
+      if (pirs && pirs.length > 0) {
+        // Sélectionner en priorité le fournisseur "Preferred", sinon le premier
+        const bestPir = pirs.find((p) => p.preferred) || pirs[0];
+        setSelectedSupplierId(bestPir.supplierId);
+
+        const calculatedPrice = computeEffectivePrice(bestPir, req.requestedQuantity);
+        setUnitPrice(calculatedPrice.toString());
+        setDeliveryDate(computeDeliveryDate(bestPir.leadTimeDays));
+      } else if (allSuppliers && allSuppliers.length > 0) {
+        setSelectedSupplierId(allSuppliers[0].id);
+        if (product) {
+          setUnitPrice(product.price.toString());
+        }
+        setDeliveryDate(computeDeliveryDate(5));
       }
     } catch {
-      setError("Impossible de charger les fournisseurs partenaires.");
+      setError("Impossible de charger les données fournisseurs et fiches info achat.");
     } finally {
       setLoadingSuppliers(false);
+    }
+  };
+
+  const handleSupplierChange = (supplierId: string) => {
+    setSelectedSupplierId(supplierId);
+    const pir = pirList.find((p) => p.supplierId === supplierId);
+    if (pir && requisition) {
+      const calculatedPrice = computeEffectivePrice(pir, requisition.requestedQuantity);
+      setUnitPrice(calculatedPrice.toString());
+      setDeliveryDate(computeDeliveryDate(pir.leadTimeDays));
+    } else if (product) {
+      setUnitPrice(product.price.toString());
+      setDeliveryDate(computeDeliveryDate(5));
     }
   };
 
@@ -109,6 +184,13 @@ export default function CreateOrderModal({
     ? (parseFloat(unitPrice) || 0) * requisition.requestedQuantity
     : 0;
 
+  const isDiscountApplied =
+    activePir &&
+    requisition &&
+    activePir.discountTierQuantity > 0 &&
+    requisition.requestedQuantity >= activePir.discountTierQuantity &&
+    activePir.discountPercentage > 0;
+
   return (
     <Modal isOpen={isOpen} onClose={onClose} className="max-w-xl p-6 sm:p-8">
       <div className="flex items-center gap-3 border-b border-gray-100 pb-4 dark:border-gray-800">
@@ -120,7 +202,7 @@ export default function CreateOrderModal({
             Générer le Bon de Commande
           </h2>
           <p className="text-xs text-gray-500 dark:text-gray-400">
-            Transformation de la demande validée en commande officielle fournisseur
+            Fiche Info Achat & Tarifs Dégressifs Fournisseur
           </p>
         </div>
       </div>
@@ -136,7 +218,12 @@ export default function CreateOrderModal({
         <div className="mt-4 rounded-xl border border-gray-100 bg-gray-50/70 p-3.5 text-xs dark:border-gray-800 dark:bg-gray-800/40">
           <div className="flex justify-between items-center">
             <span className="font-semibold text-gray-700 dark:text-gray-300">
-              Demande Réf: <span className="font-mono">{requisition.prNumber || requisition.requisitionNumber || `DA-${requisition.id.substring(0, 6).toUpperCase()}`}</span>
+              Demande Réf:{" "}
+              <span className="font-mono">
+                {requisition.prNumber ||
+                  requisition.requisitionNumber ||
+                  `DA-${requisition.id.substring(0, 6).toUpperCase()}`}
+              </span>
             </span>
             <span className="rounded-md bg-brand-100 px-2 py-0.5 font-bold text-brand-800 dark:bg-brand-950 dark:text-brand-300">
               {requisition.requestedQuantity} PCS
@@ -153,28 +240,86 @@ export default function CreateOrderModal({
       <form onSubmit={handleSubmit} className="mt-5 space-y-4">
         {/* Fournisseur */}
         <div>
-          <Label htmlFor="supplierId" className="mb-1.5 block text-xs font-semibold text-gray-700 dark:text-gray-300">
-            Fournisseur sélectionné *
-          </Label>
+          <div className="flex items-center justify-between mb-1.5">
+            <Label htmlFor="supplierId" className="block text-xs font-semibold text-gray-700 dark:text-gray-300">
+              Fournisseur sélectionné *
+            </Label>
+            {pirList.length > 0 && (
+              <span className="text-[11px] text-brand-600 font-medium dark:text-brand-400">
+                {pirList.length} fournisseur(s) habilité(s) pour cet article
+              </span>
+            )}
+          </div>
+
           {loadingSuppliers ? (
             <div className="h-10 animate-pulse rounded-lg bg-gray-100 dark:bg-gray-800" />
           ) : (
             <select
               id="supplierId"
               value={selectedSupplierId}
-              onChange={(e) => setSelectedSupplierId(e.target.value)}
+              onChange={(e) => handleSupplierChange(e.target.value)}
               className="w-full rounded-xl border border-gray-200 bg-white px-3 py-2.5 text-sm font-medium text-gray-900 shadow-sm transition-colors focus:border-brand-500 focus:outline-none dark:border-gray-700 dark:bg-gray-800 dark:text-white"
               required
             >
               <option value="" disabled>Sélectionner un fournisseur...</option>
-              {suppliers.map((s) => (
-                <option key={s.id} value={s.id}>
-                  {s.name} ({s.paymentTerms || "30 jours"})
+              {/* Priorité aux fournisseurs ayant un PIR pour cet article */}
+              {pirList.map((pir) => (
+                <option key={pir.supplierId} value={pir.supplierId}>
+                  {pir.preferred ? "⭐ " : ""}{pir.supplierName} (Réf: {pir.supplierPartNumber} • {pir.baseUnitPrice}€ • Délai: {pir.leadTimeDays}j)
                 </option>
               ))}
+              {/* Fournisseurs sans PIR spécifique */}
+              {suppliers
+                .filter((s) => !pirList.some((p) => p.supplierId === s.id))
+                .map((s) => (
+                  <option key={s.id} value={s.id}>
+                    {s.name} ({s.paymentTerms || "30 jours"})
+                  </option>
+                ))}
             </select>
           )}
         </div>
+
+        {/* Détails PIR Fournisseur & Tarifs Dégressifs */}
+        {activePir && (
+          <div className="rounded-xl border border-emerald-200/80 bg-emerald-50/50 p-3 text-xs dark:border-emerald-900/50 dark:bg-emerald-950/20 space-y-2">
+            <div className="flex items-center justify-between">
+              <span className="flex items-center gap-1.5 font-bold text-emerald-800 dark:text-emerald-300">
+                {activePir.preferred ? <Star className="h-3.5 w-3.5 fill-amber-400 text-amber-500" /> : <Tag className="h-3.5 w-3.5" />}
+                Fiche Info Achat ({activePir.supplierPartNumber})
+              </span>
+              <span className="flex items-center gap-1 text-emerald-700 dark:text-emerald-400 font-medium">
+                <Truck className="h-3.5 w-3.5" />
+                Délai moyen : {activePir.leadTimeDays} jours
+              </span>
+            </div>
+
+            <div className="flex flex-wrap items-center gap-2 pt-1 border-t border-emerald-100 dark:border-emerald-900/40 text-emerald-900 dark:text-emerald-200">
+              <span>Prix base : <strong>{activePir.baseUnitPrice} €</strong></span>
+              {activePir.discountTierQuantity > 0 && activePir.discountPercentage > 0 && (
+                <>
+                  <span>•</span>
+                  <span className="flex items-center gap-1">
+                    <Percent className="h-3 w-3" />
+                    Remise volume : <strong>-{activePir.discountPercentage}%</strong> dès {activePir.discountTierQuantity} pcs
+                  </span>
+                </>
+              )}
+            </div>
+
+            {isDiscountApplied ? (
+              <div className="flex items-center gap-1.5 text-emerald-700 dark:text-emerald-300 font-bold bg-emerald-100/70 dark:bg-emerald-900/40 p-1.5 rounded-lg">
+                <CheckCircle className="h-3.5 w-3.5" />
+                Remise volume de {activePir.discountPercentage}% appliquée automatiquement ! ({unitPrice} € / unité)
+              </div>
+            ) : activePir.discountTierQuantity > 0 && requisition && (
+              <div className="flex items-center gap-1 text-gray-500 dark:text-gray-400 italic">
+                <Info className="h-3 w-3" />
+                Ajoutez {activePir.discountTierQuantity - requisition.requestedQuantity} pièces pour bénéficier de -{activePir.discountPercentage}% de remise.
+              </div>
+            )}
+          </div>
+        )}
 
         {/* Prix Négocié & Date de Livraison */}
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">

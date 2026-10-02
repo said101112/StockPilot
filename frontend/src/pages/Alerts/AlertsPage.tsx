@@ -1,18 +1,16 @@
 import { useEffect, useState } from "react";
 import Button from "@/components/ui/button/Button";
-import Badge from "@/components/ui/badge/Badge";
 import { alertsApi } from "@/features/alerts/api/alertsApi";
-import { productsApi } from "@/features/products/api/productsApi";
-import { httpClient } from "@/shared/api/httpClient";
+import { masterDataCache } from "@/shared/cache/masterDataCache";
 import type { StockAlert } from "@/features/alerts/domain/types";
 import type { Product } from "@/features/products/domain/types";
 import CreateRequisitionModal from "@/features/procurement/components/CreateRequisitionModal";
 import { AlertTriangle, RefreshCw, Warehouse, ShieldAlert, CheckCircle2, ShoppingCart } from "lucide-react";
 
-interface WarehouseInfo {
-  id: string;
-  name: string;
-}
+import { ModernStatusBadge } from "@/components/common/ModernStatusBadge";
+import { DateCell } from "@/components/common/DateCell";
+import { usePagination } from "@/hooks/usePagination";
+import { Pagination } from "@/components/common/Pagination";
 
 export default function AlertsPage() {
   const [alerts, setAlerts] = useState<StockAlert[]>([]);
@@ -21,21 +19,30 @@ export default function AlertsPage() {
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
 
+  // Pagination hook
+  const pagination = usePagination({ items: alerts, initialPageSize: 10 });
+
   // Modal DA state
   const [selectedProductIdForDA, setSelectedProductIdForDA] = useState<string>("");
   const [isDAModalOpen, setIsDAModalOpen] = useState<boolean>(false);
 
-  const fetchAlerts = async () => {
+  const fetchAlerts = async (forceRefresh = false) => {
     try {
       setLoading(true);
       setError(null);
       const [alertsData, prods, warehouses] = await Promise.all([
         alertsApi.getAll(),
-        productsApi.getAll().catch(() => []),
-        httpClient.get<WarehouseInfo[]>("/warehouses").catch(() => []),
+        masterDataCache.getProducts(forceRefresh),
+        masterDataCache.getWarehouses(forceRefresh),
       ]);
 
-      setAlerts(alertsData || []);
+      // Tri strict : Les alertes les plus récentes en premier
+      const sortedAlerts = [...(alertsData || [])].sort((a, b) => {
+        const timeA = a.createdAt ? new Date(a.createdAt).getTime() : 0;
+        const timeB = b.createdAt ? new Date(b.createdAt).getTime() : 0;
+        return timeB - timeA;
+      });
+      setAlerts(sortedAlerts);
 
       const pMap: Record<string, Product> = {};
       prods.forEach((p) => {
@@ -64,30 +71,6 @@ export default function AlertsPage() {
   const handleCreateDAFromAlert = (productId: string) => {
     setSelectedProductIdForDA(productId);
     setIsDAModalOpen(true);
-  };
-
-  const getSeverityBadge = (sev: string) => {
-    switch (sev) {
-      case "CRITICAL":
-        return <Badge color="error">Rupture Totale (0 PCS)</Badge>;
-      case "HIGH":
-        return <Badge color="warning">Stock Critique (&le; 50% seuil)</Badge>;
-      case "MEDIUM":
-        return <Badge color="primary">Point de Commande Atteint</Badge>;
-      default:
-        return <Badge color="light">{sev}</Badge>;
-    }
-  };
-
-  const getStatusBadge = (status: string) => {
-    switch (status) {
-      case "ACTIVE":
-        return <Badge color="error">Action Requise</Badge>;
-      case "RESOLVED":
-        return <Badge color="success">Régularisée</Badge>;
-      default:
-        return <Badge color="light">{status}</Badge>;
-    }
   };
 
   return (
@@ -128,25 +111,26 @@ export default function AlertsPage() {
             <thead className="border-b border-gray-200 bg-gray-50/75 text-xs font-semibold uppercase tracking-wider text-gray-500 dark:border-gray-800 dark:bg-gray-800/50 dark:text-gray-400">
               <tr>
                 <th className="px-6 py-4">Article & Référence</th>
+                <th className="px-6 py-4">Date Détection</th>
                 <th className="px-6 py-4">Entrepôt</th>
                 <th className="px-6 py-4 text-center">Stock Actuel</th>
                 <th className="px-6 py-4 text-center">Seuil Minimum</th>
-                <th className="px-6 py-4">Niveau d'Urgence</th>
-                <th className="px-6 py-4">État Alerte</th>
+                <th className="px-6 py-4 text-center">Niveau d'Urgence</th>
+                <th className="px-6 py-4 text-center">État Alerte</th>
                 <th className="px-6 py-4 text-right">Actions Logistiques</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100 dark:divide-gray-800">
               {loading ? (
                 <tr>
-                  <td colSpan={7} className="px-6 py-12 text-center text-gray-500">
+                  <td colSpan={8} className="px-6 py-12 text-center text-gray-500">
                     <RefreshCw className="mx-auto h-6 w-6 animate-spin text-brand-500 mb-2" />
                     Chargement des alertes...
                   </td>
                 </tr>
               ) : alerts.length === 0 ? (
                 <tr>
-                  <td colSpan={7} className="px-6 py-12 text-center">
+                  <td colSpan={8} className="px-6 py-12 text-center">
                     <CheckCircle2 className="mx-auto h-10 w-10 text-emerald-500 mb-2" />
                     <p className="font-semibold text-gray-900 dark:text-white">Aucune alerte active</p>
                     <p className="text-xs text-gray-400 mt-1">
@@ -155,7 +139,7 @@ export default function AlertsPage() {
                   </td>
                 </tr>
               ) : (
-                alerts.map((al) => {
+                pagination.paginatedItems.map((al) => {
                   const product = productMap[al.productId];
                   const whName = warehouseMap[al.warehouseId] || "Entrepôt Marseille Port";
 
@@ -175,6 +159,9 @@ export default function AlertsPage() {
                         </div>
                       </td>
                       <td className="px-6 py-4">
+                        <DateCell date={al.createdAt} updatedDate={al.resolvedAt} />
+                      </td>
+                      <td className="px-6 py-4">
                         <div className="flex items-center gap-1.5 text-xs text-gray-600 dark:text-gray-300">
                           <Warehouse className="h-3.5 w-3.5 text-gray-400 shrink-0" />
                           <span>{whName}</span>
@@ -186,8 +173,12 @@ export default function AlertsPage() {
                       <td className="px-6 py-4 text-center font-semibold text-gray-700 dark:text-gray-300 font-mono">
                         {al.reorderPoint} PCS
                       </td>
-                      <td className="px-6 py-4">{getSeverityBadge(al.severity)}</td>
-                      <td className="px-6 py-4">{getStatusBadge(al.status)}</td>
+                      <td className="px-6 py-4 text-center">
+                        <ModernStatusBadge status={al.severity} fixedWidth={true} />
+                      </td>
+                      <td className="px-6 py-4 text-center">
+                        <ModernStatusBadge status={al.status} fixedWidth={true} />
+                      </td>
                       <td className="px-6 py-4 text-right">
                         {al.status === "ACTIVE" ? (
                           <Button
@@ -210,6 +201,7 @@ export default function AlertsPage() {
             </tbody>
           </table>
         </div>
+        <Pagination pagination={pagination} />
       </div>
 
       {/* Modal DA pré-remplie */}

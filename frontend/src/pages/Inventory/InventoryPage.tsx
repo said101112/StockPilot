@@ -1,10 +1,8 @@
 import { useEffect, useState } from "react";
 import Button from "@/components/ui/button/Button";
-import Badge from "@/components/ui/badge/Badge";
 import { ScrapModal } from "@/features/inventory/components/ScrapModal";
 import { inventoryApi } from "@/features/inventory/api/inventoryApi";
-import { productsApi } from "@/features/products/api/productsApi";
-import { httpClient } from "@/shared/api/httpClient";
+import { masterDataCache } from "@/shared/cache/masterDataCache";
 import type { InventoryItem, ScrapInventoryResponse } from "@/features/inventory/domain/types";
 import type { Product } from "@/features/products/domain/types";
 import {
@@ -17,10 +15,9 @@ import {
   Warehouse,
 } from "lucide-react";
 
-interface WarehouseInfo {
-  id: string;
-  name: string;
-}
+import { ModernStatusBadge } from "@/components/common/ModernStatusBadge";
+import { usePagination } from "@/hooks/usePagination";
+import { Pagination } from "@/components/common/Pagination";
 
 export default function InventoryPage() {
   const [inventories, setInventories] = useState<InventoryItem[]>([]);
@@ -32,17 +29,32 @@ export default function InventoryPage() {
   const [isModalOpen, setIsModalOpen] = useState<boolean>(false);
   const [lastScrapResult, setLastScrapResult] = useState<ScrapInventoryResponse | null>(null);
 
-  const fetchInventories = async () => {
+  // Pagination hook
+  const pagination = usePagination({ items: inventories, initialPageSize: 10 });
+
+  const fetchInventories = async (forceRefresh = false) => {
     try {
       setLoading(true);
       setError(null);
       const [invData, prods, warehouses] = await Promise.all([
         inventoryApi.getAll(),
-        productsApi.getAll().catch(() => []),
-        httpClient.get<WarehouseInfo[]>("/warehouses").catch(() => []),
+        masterDataCache.getProducts(forceRefresh),
+        masterDataCache.getWarehouses(forceRefresh),
       ]);
 
-      setInventories(invData);
+      // Tri intelligent : Ruptures et alertes en premier, puis par stock disponible croissant
+      const statusPrio: Record<string, number> = {
+        OUT_OF_STOCK: 1,
+        LOW_STOCK: 2,
+        IN_STOCK: 3,
+      };
+      const sorted = [...(invData || [])].sort((a, b) => {
+        const pA = statusPrio[a.status] || 99;
+        const pB = statusPrio[b.status] || 99;
+        if (pA !== pB) return pA - pB;
+        return a.availableQuantity - b.availableQuantity;
+      });
+      setInventories(sorted);
 
       const pMap: Record<string, Product> = {};
       prods.forEach((p) => {
@@ -76,19 +88,6 @@ export default function InventoryPage() {
   const handleScrapSuccess = (result: ScrapInventoryResponse) => {
     setLastScrapResult(result);
     fetchInventories();
-  };
-
-  const getStatusBadge = (status: string) => {
-    switch (status) {
-      case "IN_STOCK":
-        return <Badge color="success">Stock Conforme</Badge>;
-      case "LOW_STOCK":
-        return <Badge color="warning">Seuil Atteint</Badge>;
-      case "OUT_OF_STOCK":
-        return <Badge color="error">Rupture de Stock</Badge>;
-      default:
-        return <Badge color="light">{status}</Badge>;
-    }
   };
 
   return (
@@ -192,7 +191,7 @@ export default function InventoryPage() {
                   </td>
                 </tr>
               ) : (
-                inventories.map((inv) => {
+                pagination.paginatedItems.map((inv) => {
                   const product = productMap[inv.productId];
                   const whName = warehouseMap[inv.warehouseId] || "Entrepôt Marseille Port";
 
@@ -229,7 +228,9 @@ export default function InventoryPage() {
                       <td className="px-3 sm:px-4 py-3 text-center font-mono font-medium text-gray-500">
                         {inv.reorderPoint} PCS
                       </td>
-                      <td className="px-3 sm:px-4 py-3">{getStatusBadge(inv.status)}</td>
+                      <td className="px-3 sm:px-4 py-3 text-center">
+                        <ModernStatusBadge status={inv.status} fixedWidth={true} />
+                      </td>
                       <td className="px-3 sm:px-4 py-3 text-right whitespace-nowrap">
                         <button
                           type="button"
@@ -248,6 +249,7 @@ export default function InventoryPage() {
             </tbody>
           </table>
         </div>
+        <Pagination pagination={pagination} />
       </div>
 
       {/* Modal Déclaration de Casse / Rebut */}

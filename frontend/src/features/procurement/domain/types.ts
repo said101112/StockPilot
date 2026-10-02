@@ -43,6 +43,38 @@ export interface PurchaseOrder {
   currency: string;
   totalAmount: number;
   expectedDeliveryDate: string;
+  createdAt?: string;
   issuedAt?: string;
   items: PurchaseOrderItem[];
+}
+
+export interface PurchasingInfoRecord {
+  id: string;
+  productId: string;
+  productName: string;
+  productSku: string;
+  supplierId: string;
+  supplierName: string;
+  supplierPartNumber: string;
+  baseUnitPrice: number;
+  currency: string;
+  leadTimeDays: number;
+  minOrderQuantity: number;
+  discountTierQuantity: number;
+  discountPercentage: number;
+  preferred: boolean;
+  active: boolean;
+}
+
+export interface CreatePurchasingInfoRecordData {
+  productId: string;
+  supplierId: string;
+  supplierPartNumber?: string;
+  baseUnitPrice: number;
+  currency?: string;
+  leadTimeDays?: number;
+  minOrderQuantity?: number;
+  discountTierQuantity?: number;
+  discountPercentage?: number;
+  preferred?: boolean;
 }

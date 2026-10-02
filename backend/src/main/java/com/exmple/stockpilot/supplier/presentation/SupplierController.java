@@ -6,6 +6,7 @@ import com.exmple.stockpilot.supplier.application.port.in.GetSupplierUseCase;
 
 import com.exmple.stockpilot.supplier.application.port.in.DeleteSupplierUseCase;
 import com.exmple.stockpilot.supplier.application.port.in.UpdateSupplierUseCase;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 
@@ -23,6 +24,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 @RestController
 @RequestMapping("/api/suppliers")
+@PreAuthorize("hasAnyRole('ADMIN','MANAGER','USER')")
 public class SupplierController {
 
     private final CreateSupplierUseCase createSupplierUseCase;
@@ -45,12 +47,14 @@ public class SupplierController {
         this.deleteSupplierUseCase = deleteSupplierUseCase;
     }
 
+    @PreAuthorize("hasAnyRole('ADMIN','MANAGER')")
     @PostMapping
     public ResponseEntity<SupplierResponse> createSupplier(@RequestBody CreateSupplierRequest request) {
         SupplierResponse response = createSupplierUseCase.create(request);
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }
 
+    @PreAuthorize("hasAnyRole('ADMIN','MANAGER')")
     @PutMapping("/{id}")
     public ResponseEntity<SupplierResponse> updateSupplier(
             @PathVariable UUID id,
@@ -60,6 +64,7 @@ public class SupplierController {
         return ResponseEntity.ok(response);
     }
 
+    @PreAuthorize("hasRole('ADMIN')")
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> deleteSupplier(@PathVariable UUID id) {
         deleteSupplierUseCase.delete(id);

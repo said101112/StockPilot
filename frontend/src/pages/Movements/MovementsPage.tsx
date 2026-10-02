@@ -1,17 +1,15 @@
 import { useEffect, useState } from "react";
 import Button from "@/components/ui/button/Button";
-import Badge from "@/components/ui/badge/Badge";
 import { movementsApi } from "@/features/movements/api/movementsApi";
-import { productsApi } from "@/features/products/api/productsApi";
-import { httpClient } from "@/shared/api/httpClient";
 import type { StockMovement } from "@/features/movements/domain/types";
 import type { Product } from "@/features/products/domain/types";
 import { History, RefreshCw, AlertCircle, FileSpreadsheet, ArrowUpRight, ArrowDownLeft, Warehouse } from "lucide-react";
 
-interface WarehouseInfo {
-  id: string;
-  name: string;
-}
+import { ModernStatusBadge } from "@/components/common/ModernStatusBadge";
+import { DateCell } from "@/components/common/DateCell";
+import { usePagination } from "@/hooks/usePagination";
+import { Pagination } from "@/components/common/Pagination";
+import { masterDataCache } from "@/shared/cache/masterDataCache";
 
 export default function MovementsPage() {
   const [movements, setMovements] = useState<StockMovement[]>([]);
@@ -20,17 +18,35 @@ export default function MovementsPage() {
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
 
+  // Pagination hook
+  const {
+    currentPage,
+    pageSize,
+    totalPages,
+    totalItems,
+    paginatedItems,
+    startIndex,
+    endIndex,
+    goToPage,
+    changePageSize,
+  } = usePagination(movements, { initialPageSize: 10 });
+
   const fetchMovements = async () => {
     try {
       setLoading(true);
       setError(null);
+      // Récupération avec cache mémoire pour les référentiels
       const [movementsData, prods, warehouses] = await Promise.all([
         movementsApi.getAll(),
-        productsApi.getAll().catch(() => []),
-        httpClient.get<WarehouseInfo[]>("/warehouses").catch(() => []),
+        masterDataCache.getProducts(),
+        masterDataCache.getWarehouses(),
       ]);
 
-      setMovements(movementsData || []);
+      // Tri strict : Les mouvements les plus récents en premier
+      const sorted = [...(movementsData || [])].sort(
+        (a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()
+      );
+      setMovements(sorted);
 
       const pMap: Record<string, Product> = {};
       prods.forEach((p) => {
@@ -55,23 +71,6 @@ export default function MovementsPage() {
   useEffect(() => {
     fetchMovements();
   }, []);
-
-  const getMovementBadge = (type: string) => {
-    switch (type) {
-      case "GOODS_RECEIPT_PO":
-        return <Badge color="success">Réception Fournisseur</Badge>;
-      case "SCRAP_DAMAGED":
-        return <Badge color="error">Casse / Rebut Déclaré</Badge>;
-      case "INTERNAL_CONSUMPTION":
-        return <Badge color="warning">Sortie Atelier</Badge>;
-      case "INITIAL_STOCK":
-        return <Badge color="primary">Inventaire Initial</Badge>;
-      case "MANUAL_ADJUSTMENT":
-        return <Badge color="light">Régularisation</Badge>;
-      default:
-        return <Badge color="light">{type}</Badge>;
-    }
-  };
 
   return (
     <div className="space-y-6">
@@ -138,7 +137,7 @@ export default function MovementsPage() {
                   </td>
                 </tr>
               ) : (
-                movements.map((mov) => {
+                paginatedItems.map((mov) => {
                   const product = productMap[mov.productId];
                   const whName = warehouseMap[mov.warehouseId] || "Entrepôt Marseille Port";
 
@@ -150,7 +149,9 @@ export default function MovementsPage() {
                       <td className="px-6 py-4 font-mono font-bold text-gray-900 dark:text-white">
                         {mov.movementNumber}
                       </td>
-                      <td className="px-6 py-4">{getMovementBadge(mov.type)}</td>
+                      <td className="px-6 py-4">
+                        <ModernStatusBadge status={mov.type} fixedWidth={true} />
+                      </td>
                       <td className="px-6 py-4">
                         <div className="flex flex-col">
                           <span className="font-bold text-gray-900 dark:text-white">
@@ -185,13 +186,8 @@ export default function MovementsPage() {
                       <td className="px-6 py-4 text-xs font-medium text-gray-700 dark:text-gray-300">
                         {mov.referenceDocument || "N/A"}
                       </td>
-                      <td className="px-6 py-4 text-right font-mono text-xs text-gray-500">
-                        {new Date(mov.timestamp).toLocaleDateString("fr-FR", {
-                          day: "numeric",
-                          month: "short",
-                          hour: "2-digit",
-                          minute: "2-digit",
-                        })}
+                      <td className="px-6 py-4 text-right">
+                        <DateCell date={mov.timestamp} align="right" />
                       </td>
                     </tr>
                   );
@@ -200,6 +196,18 @@ export default function MovementsPage() {
             </tbody>
           </table>
         </div>
+
+        {/* Contrôles de pagination */}
+        <Pagination
+          currentPage={currentPage}
+          totalPages={totalPages}
+          totalItems={totalItems}
+          startIndex={startIndex}
+          endIndex={endIndex}
+          pageSize={pageSize}
+          onPageChange={goToPage}
+          onPageSizeChange={changePageSize}
+        />
       </div>
     </div>
   );

@@ -4,7 +4,9 @@ import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+import io.jsonwebtoken.Claims;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UserDetails;
@@ -16,6 +18,7 @@ import java.io.IOException;
 
 @Component
 @RequiredArgsConstructor
+@Slf4j
 public class JwtAuthenticationFilter extends OncePerRequestFilter {
     private final JwtService jwtService;
     private final AppUserDetailsService userDetailsService;
@@ -26,14 +29,21 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         if (authHeader != null && authHeader.startsWith("Bearer ")) {
             String token = authHeader.substring(7);
             try {
-                String email = jwtService.extractEmail(token);
+                Claims claims = jwtService.parseClaims(token);
+                String tokenType = claims.get("type", String.class);
+                if (tokenType == null || !"access".equals(tokenType)) {
+                    filterChain.doFilter(request, response);
+                    return;
+                }
+                String email = claims.getSubject();
                 if (email != null && SecurityContextHolder.getContext().getAuthentication() == null) {
                     UserDetails ud = userDetailsService.loadUserByUsername(email);
                     UsernamePasswordAuthenticationToken authToken = new UsernamePasswordAuthenticationToken(ud, null, ud.getAuthorities());
                     authToken.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
                     SecurityContextHolder.getContext().setAuthentication(authToken);
                 }
-            } catch (Exception ignored) {
+            } catch (Exception ex) {
+                log.debug("Invalid JWT: {}", ex.getMessage());
             }
         }
         filterChain.doFilter(request, response);

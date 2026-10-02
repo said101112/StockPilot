@@ -3,6 +3,7 @@ package com.exmple.stockpilot.Inventory.presentation;
 import com.exmple.stockpilot.Inventory.application.port.in.CreateInventoryUseCase;
 import com.exmple.stockpilot.Inventory.application.port.in.GetInventoryUseCase;
 import com.exmple.stockpilot.Inventory.application.port.in.ManageInventoryUseCase;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -21,6 +22,7 @@ import java.util.UUID;
  */
 @RestController
 @RequestMapping("/api/inventories")
+@PreAuthorize("hasAnyRole('ADMIN','MANAGER','USER')")
 public class InventoryController {
 
     private final CreateInventoryUseCase createInventoryUseCase;
@@ -37,6 +39,7 @@ public class InventoryController {
         this.manageInventoryUseCase = manageInventoryUseCase;
     }
 
+    @PreAuthorize("hasAnyRole('ADMIN','MANAGER')")
     @PostMapping
     public ResponseEntity<InventoryResponse> createInventory(@RequestBody CreateInventoryRequest request) {
         InventoryResponse response = createInventoryUseCase.createInventory(request);
@@ -61,6 +64,7 @@ public class InventoryController {
         return ResponseEntity.ok(getInventoryUseCase.getInventoryByProductAndWarehouse(productId, warehouseId));
     }
 
+    @PreAuthorize("hasAnyRole('ADMIN','MANAGER','USER')")
     @PostMapping("/{id}/consume")
     public ResponseEntity<InventoryResponse> consumeStock(
             @PathVariable UUID id,
@@ -70,6 +74,7 @@ public class InventoryController {
         return ResponseEntity.ok(response);
     }
 
+    @PreAuthorize("hasAnyRole('ADMIN','MANAGER')")
     @PostMapping("/{id}/reserve")
     public ResponseEntity<InventoryResponse> reserveStock(
             @PathVariable UUID id,
@@ -79,6 +84,7 @@ public class InventoryController {
         return ResponseEntity.ok(response);
     }
 
+    @PreAuthorize("hasAnyRole('ADMIN','MANAGER')")
     @PostMapping("/{id}/increase")
     public ResponseEntity<InventoryResponse> increaseStock(
             @PathVariable UUID id,
@@ -92,6 +98,7 @@ public class InventoryController {
      * Déclaration d'une pièce cassée / mise au rebut (Équivalent SAP MM 551 - Scrapping).
      * Rôle utilisateur : Magasinier (Warehouse Clerk)
      */
+    @PreAuthorize("hasAnyRole('ADMIN','MANAGER','USER')")
     @PostMapping("/{id}/scrap")
     public ResponseEntity<ScrapInventoryResponse> scrapStock(
             @PathVariable UUID id,

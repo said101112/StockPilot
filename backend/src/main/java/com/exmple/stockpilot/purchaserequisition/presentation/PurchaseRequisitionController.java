@@ -4,6 +4,7 @@ import com.exmple.stockpilot.purchaserequisition.application.port.in.CreatePurch
 import com.exmple.stockpilot.purchaserequisition.application.port.in.GetPurchaseRequisitionUseCase;
 import com.exmple.stockpilot.purchaserequisition.application.port.in.ManagePurchaseRequisitionUseCase;
 import com.exmple.stockpilot.purchaserequisition.domain.enums.PurchaseRequisitionStatus;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -24,6 +25,7 @@ import java.util.UUID;
  */
 @RestController
 @RequestMapping("/api/purchase-requisitions")
+@PreAuthorize("hasAnyRole('ADMIN','MANAGER','USER')")
 public class PurchaseRequisitionController {
 
     private final CreatePurchaseRequisitionUseCase createPurchaseRequisitionUseCase;
@@ -62,16 +64,19 @@ public class PurchaseRequisitionController {
         return ResponseEntity.ok(getPurchaseRequisitionUseCase.getRequisitionsByStatus(prStatus));
     }
 
+    @PreAuthorize("hasAnyRole('ADMIN','MANAGER','USER')")
     @PostMapping("/{id}/submit")
     public ResponseEntity<PurchaseRequisitionResponse> submitRequisition(@PathVariable UUID id) {
         return ResponseEntity.ok(managePurchaseRequisitionUseCase.submitRequisition(id));
     }
 
+    @PreAuthorize("hasAnyRole('ADMIN','MANAGER')")
     @PostMapping("/{id}/approve")
     public ResponseEntity<PurchaseRequisitionResponse> approveRequisition(@PathVariable UUID id) {
         return ResponseEntity.ok(managePurchaseRequisitionUseCase.approveRequisition(id));
     }
 
+    @PreAuthorize("hasAnyRole('ADMIN','MANAGER')")
     @PostMapping("/{id}/reject")
     public ResponseEntity<PurchaseRequisitionResponse> rejectRequisition(
             @PathVariable UUID id,
@@ -80,6 +85,7 @@ public class PurchaseRequisitionController {
         return ResponseEntity.ok(managePurchaseRequisitionUseCase.rejectRequisition(id, request.reason()));
     }
 
+    @PreAuthorize("hasAnyRole('ADMIN','MANAGER')")
     @org.springframework.web.bind.annotation.DeleteMapping("/{id}")
     public ResponseEntity<Void> deleteRequisition(@PathVariable UUID id) {
         managePurchaseRequisitionUseCase.deleteRequisition(id);

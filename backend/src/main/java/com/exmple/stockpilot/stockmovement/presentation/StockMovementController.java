@@ -1,6 +1,7 @@
 package com.exmple.stockpilot.stockmovement.presentation;
 
 import com.exmple.stockpilot.stockmovement.application.port.in.GetStockMovementUseCase;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -16,6 +17,7 @@ import java.util.UUID;
  */
 @RestController
 @RequestMapping("/api/stock-movements")
+@PreAuthorize("hasAnyRole('ADMIN','MANAGER','USER')")
 public class StockMovementController {
 
     private final GetStockMovementUseCase getStockMovementUseCase;

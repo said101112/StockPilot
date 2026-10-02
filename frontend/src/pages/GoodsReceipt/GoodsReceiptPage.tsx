@@ -17,6 +17,9 @@ import {
   Clock,
   CheckCircle,
 } from "lucide-react";
+import { DateCell } from "@/components/common/DateCell";
+import { usePagination } from "@/hooks/usePagination";
+import { Pagination } from "@/components/common/Pagination";
 
 export default function GoodsReceiptPage() {
   const [receipts, setReceipts] = useState<GoodsReceipt[]>([]);
@@ -24,6 +27,19 @@ export default function GoodsReceiptPage() {
   const [pendingOrdersCount, setPendingOrdersCount] = useState<number>(0);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
+
+  // Hook de pagination
+  const {
+    currentPage,
+    pageSize,
+    totalPages,
+    totalItems,
+    paginatedItems,
+    startIndex,
+    endIndex,
+    goToPage,
+    changePageSize,
+  } = usePagination(receipts, { initialPageSize: 10 });
 
   // Modals state
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
@@ -218,7 +234,7 @@ export default function GoodsReceiptPage() {
                   </td>
                 </tr>
               ) : (
-                receipts.map((gr) => {
+                paginatedItems.map((gr) => {
                   const po = gr.purchaseOrderId ? orderMap[gr.purchaseOrderId] : null;
 
                   return (
@@ -254,14 +270,8 @@ export default function GoodsReceiptPage() {
                       <td className="px-3 sm:px-4 py-3 text-xs text-gray-500 max-w-xs truncate">
                         {gr.notes || "Réception conforme au quai"}
                       </td>
-                      <td className="px-3 sm:px-4 py-3 text-xs text-gray-600 dark:text-gray-400 font-medium">
-                        {new Date(gr.receivedAt).toLocaleDateString("fr-FR", {
-                          day: "numeric",
-                          month: "short",
-                          year: "numeric",
-                          hour: "2-digit",
-                          minute: "2-digit",
-                        })}
+                      <td className="px-3 sm:px-4 py-3">
+                        <DateCell date={gr.receivedAt} />
                       </td>
                       <td className="px-3 sm:px-4 py-3 text-right whitespace-nowrap">
                         <button
@@ -280,6 +290,18 @@ export default function GoodsReceiptPage() {
             </tbody>
           </table>
         </div>
+
+        {/* Contrôles de pagination */}
+        <Pagination
+          currentPage={currentPage}
+          totalPages={totalPages}
+          totalItems={totalItems}
+          startIndex={startIndex}
+          endIndex={endIndex}
+          pageSize={pageSize}
+          onPageChange={goToPage}
+          onPageSizeChange={changePageSize}
+        />
       </div>
 
       {/* Modal d'enregistrement au quai */}

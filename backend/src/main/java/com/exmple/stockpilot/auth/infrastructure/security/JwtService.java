@@ -33,6 +33,7 @@ public class JwtService {
                 .expiration(Date.from(now.plus(props.getAccessTtlMinutes(), ChronoUnit.MINUTES)))
                 .claim("role", user.getRole().name())
                 .claim("userId", user.getId().toString())
+                .claim("type", "access")
                 .signWith(key)
                 .compact();
     }

@@ -36,15 +36,19 @@ public class UserJpaEntity {
     @Column(nullable = false, length = 50)
     private Role role;
 
+    @Builder.Default
     @Column(nullable = false)
     private boolean enabled = true;
 
+    @Builder.Default
     @Column(name = "account_non_expired")
     private boolean accountNonExpired = true;
 
+    @Builder.Default
     @Column(name = "account_non_locked")
     private boolean accountNonLocked = true;
 
+    @Builder.Default
     @Column(name = "credentials_non_expired")
     private boolean credentialsNonExpired = true;
 

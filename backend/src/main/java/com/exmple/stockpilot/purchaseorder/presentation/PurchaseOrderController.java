@@ -4,6 +4,7 @@ import com.exmple.stockpilot.purchaseorder.application.port.in.CreatePurchaseOrd
 import com.exmple.stockpilot.purchaseorder.application.port.in.GetPurchaseOrderUseCase;
 import com.exmple.stockpilot.purchaseorder.application.port.in.ManagePurchaseOrderUseCase;
 import com.exmple.stockpilot.purchaseorder.domain.enums.PurchaseOrderStatus;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -22,6 +23,7 @@ import java.util.UUID;
  */
 @RestController
 @RequestMapping("/api/purchase-orders")
+@PreAuthorize("hasAnyRole('ADMIN','MANAGER','USER')")
 public class PurchaseOrderController {
 
     private final CreatePurchaseOrderUseCase createPurchaseOrderUseCase;
@@ -38,6 +40,7 @@ public class PurchaseOrderController {
         this.getPurchaseOrderUseCase = getPurchaseOrderUseCase;
     }
 
+    @PreAuthorize("hasAnyRole('ADMIN','MANAGER')")
     @PostMapping("/from-requisition")
     public ResponseEntity<PurchaseOrderResponse> createFromRequisition(
             @RequestBody CreatePurchaseOrderFromRequisitionRequest request
@@ -46,11 +49,13 @@ public class PurchaseOrderController {
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }
 
+    @PreAuthorize("hasAnyRole('ADMIN','MANAGER')")
     @PostMapping("/{id}/issue")
     public ResponseEntity<PurchaseOrderResponse> issueOrder(@PathVariable UUID id) {
         return ResponseEntity.ok(managePurchaseOrderUseCase.issueOrder(id));
     }
 
+    @PreAuthorize("hasAnyRole('ADMIN','MANAGER')")
     @PostMapping("/{id}/cancel")
     public ResponseEntity<PurchaseOrderResponse> cancelOrder(@PathVariable UUID id) {
         return ResponseEntity.ok(managePurchaseOrderUseCase.cancelOrder(id));

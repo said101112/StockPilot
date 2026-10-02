@@ -2,6 +2,7 @@ package com.exmple.stockpilot.goodsreceipt.presentation;
 
 import com.exmple.stockpilot.goodsreceipt.application.port.in.CreateGoodsReceiptUseCase;
 import com.exmple.stockpilot.goodsreceipt.application.port.in.GetGoodsReceiptUseCase;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -16,6 +17,7 @@ import java.util.UUID;
 
 @RestController
 @RequestMapping("/api/goods-receipts")
+@PreAuthorize("hasAnyRole('ADMIN','MANAGER','USER')")
 public class GoodsReceiptController {
 
     private final CreateGoodsReceiptUseCase createGoodsReceiptUseCase;
@@ -29,6 +31,7 @@ public class GoodsReceiptController {
         this.getGoodsReceiptUseCase = getGoodsReceiptUseCase;
     }
 
+    @PreAuthorize("hasAnyRole('ADMIN','MANAGER','USER')")
     @PostMapping
     public ResponseEntity<GoodsReceiptResponse> createGoodsReceipt(@RequestBody CreateGoodsReceiptRequest request) {
         GoodsReceiptResponse response = createGoodsReceiptUseCase.createGoodsReceipt(request);

@@ -108,8 +108,8 @@ public class PurchaseRequisition {
     }
 
     public void markAsOrdered() {
-        if (this.status != PurchaseRequisitionStatus.APPROVED && this.status != PurchaseRequisitionStatus.SUBMITTED) {
-            throw new IllegalStateException("Requisition cannot be ordered with current status: " + this.status);
+        if (this.status != PurchaseRequisitionStatus.APPROVED) {
+            throw new IllegalStateException("Requisition cannot be ordered unless it is APPROVED. Current status: " + this.status);
         }
         this.status = PurchaseRequisitionStatus.ORDERED;
     }

@@ -154,6 +154,7 @@ export const ScrapModal: React.FC<ScrapModalProps> = ({
             Annuler
           </Button>
           <Button
+            type="submit"
             variant="primary"
             className="bg-error-600 hover:bg-error-700 text-white"
             disabled={loading || inventory.availableQuantity <= 0}

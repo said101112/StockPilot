@@ -38,15 +38,13 @@ public class AuthController {
     }
 
     @PostMapping("/logout")
-    public ResponseEntity<Void> logout() {
+    public ResponseEntity<Void> logout(Authentication authentication) {
+        authService.logout(authentication.getName());
         return ResponseEntity.noContent().build();
     }
 
     @GetMapping("/me")
     public ResponseEntity<UserResponse> me(Authentication authentication) {
-        if (authentication == null || authentication.getName() == null) {
-            return ResponseEntity.status(401).build();
-        }
         User u = authService.getCurrentUser(authentication.getName());
         return ResponseEntity.ok(UserResponse.from(u));
     }

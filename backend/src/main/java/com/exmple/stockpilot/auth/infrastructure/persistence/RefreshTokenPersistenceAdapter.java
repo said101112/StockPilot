@@ -4,6 +4,7 @@ import com.exmple.stockpilot.auth.application.port.out.RefreshTokenRepository;
 import com.exmple.stockpilot.auth.domain.model.RefreshToken;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Instant;
 import java.util.Optional;
@@ -26,8 +27,9 @@ public class RefreshTokenPersistenceAdapter implements RefreshTokenRepository {
     }
 
     @Override
+    @Transactional
     public void revokeAllByUserId(UUID userId) {
-        // simple approach: load not needed; could add custom query later
+        repo.revokeAllByUserId(userId);
     }
 
     @Override

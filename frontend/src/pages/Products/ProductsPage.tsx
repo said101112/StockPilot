@@ -1,12 +1,16 @@
 import { useEffect, useState } from "react";
 import Button from "@/components/ui/button/Button";
 import { productsApi } from "@/features/products/api/productsApi";
+import { masterDataCache } from "@/shared/cache/masterDataCache";
 import type { Product } from "@/features/products/domain/types";
 import CreateProductModal from "@/features/products/components/CreateProductModal";
 import EditProductModal from "@/features/products/components/EditProductModal";
 import { ConfirmModal } from "@/components/common/ConfirmModal";
 import { useToast } from "@/shared/context/ToastContext";
+import { useAuth } from "@/hooks/useAuth";
 import { PRODUCT_TAXONOMY_GROUPS, PRODUCT_TAXONOMY, getCategoryInfo } from "@/features/products/domain/taxonomy";
+import { usePagination } from "@/hooks/usePagination";
+import { Pagination } from "@/components/common/Pagination";
 import {
   Boxes,
   Plus,
@@ -18,6 +22,9 @@ import {
 } from "lucide-react";
 
 export default function ProductsPage() {
+  const { hasRole } = useAuth();
+  const canManageProducts = hasRole("ADMIN");
+
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
@@ -31,11 +38,13 @@ export default function ProductsPage() {
 
   const { showSuccess, showError } = useToast();
 
-  const loadProducts = async () => {
+  const loadProducts = async (forceRefresh = false) => {
     try {
       setLoading(true);
-      const data = await productsApi.getAll();
-      setProducts(data || []);
+      const data = await masterDataCache.getProducts(forceRefresh);
+      // Le plus récent en haut (les nouveaux articles créés apparaissent en première ligne)
+      const sorted = [...(data || [])].reverse();
+      setProducts(sorted);
     } catch {
       setProducts([]);
     } finally {
@@ -52,6 +61,7 @@ export default function ProductsPage() {
     try {
       setDeleteLoading(true);
       await productsApi.delete(productToDelete.id);
+      masterDataCache.invalidate("products");
       setProducts((prev) => prev.filter((p) => p.id !== productToDelete.id));
       showSuccess(`L'article "${productToDelete.name}" a été supprimé.`);
       setProductToDelete(null);
@@ -73,6 +83,8 @@ export default function ProductsPage() {
 
     return matchesSearch && matchesCategory;
   });
+
+  const pagination = usePagination({ items: filteredProducts, initialPageSize: 10 });
 
   const getCategoryBadge = (cat: string) => {
     const info = getCategoryInfo(cat);
@@ -110,10 +122,12 @@ export default function ProductsPage() {
             <RefreshCw className={`h-4 w-4 ${loading ? "animate-spin" : ""}`} />
             Actualiser
           </Button>
-          <Button onClick={() => setIsModalOpen(true)} className="gap-2">
-            <Plus className="h-4 w-4" />
-            Nouvel Article
-          </Button>
+          {canManageProducts && (
+            <Button onClick={() => setIsModalOpen(true)} className="gap-2">
+              <Plus className="h-4 w-4" />
+              Nouvel Article
+            </Button>
+          )}
         </div>
       </div>
 
@@ -204,20 +218,20 @@ export default function ProductsPage() {
                 <th className="px-3 sm:px-4 py-3.5">Catégorie</th>
                 <th className="px-3 sm:px-4 py-3.5">Prix Unitaire</th>
                 <th className="px-3 sm:px-4 py-3.5">Unité</th>
-                <th className="px-3 sm:px-4 py-3.5 text-right whitespace-nowrap">Actions</th>
+                {canManageProducts && <th className="px-3 sm:px-4 py-3.5 text-right whitespace-nowrap">Actions</th>}
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100 dark:divide-gray-800">
               {loading ? (
                 <tr>
-                  <td colSpan={6} className="py-12 text-center text-sm text-gray-500">
+                  <td colSpan={canManageProducts ? 6 : 5} className="py-12 text-center text-sm text-gray-500">
                     <RefreshCw className="mx-auto h-6 w-6 animate-spin text-brand-500 mb-2" />
                     Chargement des articles...
                   </td>
                 </tr>
               ) : filteredProducts.length === 0 ? (
                 <tr>
-                  <td colSpan={6} className="py-12 text-center">
+                  <td colSpan={canManageProducts ? 6 : 5} className="py-12 text-center">
                     <Boxes className="mx-auto h-10 w-10 text-gray-300 dark:text-gray-600 mb-3" />
                     <p className="text-sm font-semibold text-gray-900 dark:text-white">
                       Aucun article trouvé
@@ -225,9 +239,11 @@ export default function ProductsPage() {
                     <p className="text-xs text-gray-500 mt-1">
                       {searchTerm || categoryFilter !== "ALL"
                         ? "Modifiez vos filtres de recherche."
-                        : "Commencez par ajouter votre premier article au catalogue."}
+                        : canManageProducts
+                        ? "Commencez par ajouter votre premier article au catalogue."
+                        : "Aucun article disponible dans le catalogue."}
                     </p>
-                    {!searchTerm && (
+                    {!searchTerm && canManageProducts && (
                       <Button onClick={() => setIsModalOpen(true)} className="mt-4 gap-2">
                         <Plus className="h-4 w-4" />
                         Ajouter un Article
@@ -236,7 +252,7 @@ export default function ProductsPage() {
                   </td>
                 </tr>
               ) : (
-                filteredProducts.map((product) => (
+                pagination.paginatedItems.map((product) => (
                   <tr
                     key={product.id}
                     className="transition-colors hover:bg-gray-50/50 dark:hover:bg-gray-800/50"
@@ -274,32 +290,35 @@ export default function ProductsPage() {
                         {product.unitOfMeasure || "PCS"}
                       </span>
                     </td>
-                    <td className="px-3 sm:px-4 py-3 text-right whitespace-nowrap">
-                      <div className="flex items-center justify-end gap-1.5">
-                        <button
-                          type="button"
-                          onClick={() => setProductToEdit(product)}
-                          title="Modifier cet article"
-                          className="flex h-8 w-8 items-center justify-center rounded-lg border border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-300 hover:bg-blue-50 hover:text-blue-600 hover:border-blue-200 dark:hover:bg-blue-950/40 dark:hover:text-blue-400 transition-colors"
-                        >
-                          <Pencil className="h-4 w-4" />
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => setProductToDelete(product)}
-                          title="Supprimer cet article"
-                          className="flex h-8 w-8 items-center justify-center rounded-lg border border-rose-200 dark:border-rose-900/50 text-rose-600 dark:text-rose-400 hover:bg-rose-50 hover:border-rose-300 dark:hover:bg-rose-950/30 transition-colors"
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </button>
-                      </div>
-                    </td>
+                    {canManageProducts && (
+                      <td className="px-3 sm:px-4 py-3 text-right whitespace-nowrap">
+                        <div className="flex items-center justify-end gap-1.5">
+                          <button
+                            type="button"
+                            onClick={() => setProductToEdit(product)}
+                            title="Modifier cet article"
+                            className="flex h-8 w-8 items-center justify-center rounded-lg border border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-300 hover:bg-blue-50 hover:text-blue-600 hover:border-blue-200 dark:hover:bg-blue-950/40 dark:hover:text-blue-400 transition-colors"
+                          >
+                            <Pencil className="h-4 w-4" />
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => setProductToDelete(product)}
+                            title="Supprimer cet article"
+                            className="flex h-8 w-8 items-center justify-center rounded-lg border border-rose-200 dark:border-rose-900/50 text-rose-600 dark:text-rose-400 hover:bg-rose-50 hover:border-rose-300 dark:hover:bg-rose-950/30 transition-colors"
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </button>
+                        </div>
+                      </td>
+                    )}
                   </tr>
                 ))
               )}
             </tbody>
           </table>
         </div>
+        <Pagination pagination={pagination} />
       </div>
 
       {/* Creation Modal */}
@@ -307,6 +326,7 @@ export default function ProductsPage() {
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
         onSuccess={(created) => {
+          masterDataCache.invalidate("products");
           setProducts((prev) => [created, ...prev]);
           showSuccess(`L'article "${created.name}" a été créé avec succès.`);
         }}
@@ -318,6 +338,7 @@ export default function ProductsPage() {
         onClose={() => setProductToEdit(null)}
         product={productToEdit}
         onSuccess={(updated) => {
+          masterDataCache.invalidate("products");
           setProducts((prev) => prev.map((p) => (p.id === updated.id ? updated : p)));
           showSuccess(`L'article "${updated.name}" a été mis à jour avec succès.`);
         }}

@@ -1,6 +1,7 @@
 package com.exmple.stockpilot.stockalert.presentation;
 
 import com.exmple.stockpilot.stockalert.application.port.in.GetStockAlertsUseCase;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -16,6 +17,7 @@ import java.util.UUID;
  */
 @RestController
 @RequestMapping("/api/stock-alerts")
+@PreAuthorize("hasAnyRole('ADMIN','MANAGER','USER')")
 public class StockAlertController {
 
     private final GetStockAlertsUseCase getStockAlertsUseCase;

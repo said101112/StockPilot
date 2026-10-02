@@ -2,11 +2,15 @@ import { useEffect, useState } from "react";
 import Button from "@/components/ui/button/Button";
 import Badge from "@/components/ui/badge/Badge";
 import { suppliersApi } from "@/features/suppliers/api/suppliersApi";
+import { masterDataCache } from "@/shared/cache/masterDataCache";
 import type { Supplier } from "@/features/suppliers/domain/types";
 import CreateSupplierModal from "@/features/suppliers/components/CreateSupplierModal";
 import EditSupplierModal from "@/features/suppliers/components/EditSupplierModal";
 import { ConfirmModal } from "@/components/common/ConfirmModal";
 import { useToast } from "@/shared/context/ToastContext";
+import { useAuth } from "@/hooks/useAuth";
+import { usePagination } from "@/hooks/usePagination";
+import { Pagination } from "@/components/common/Pagination";
 import {
   Building2,
   Plus,
@@ -22,6 +26,9 @@ import {
 } from "lucide-react";
 
 export default function SuppliersPage() {
+  const { hasRole } = useAuth();
+  const canDelete = hasRole("ADMIN");
+
   const [suppliers, setSuppliers] = useState<Supplier[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
@@ -34,11 +41,13 @@ export default function SuppliersPage() {
 
   const { showSuccess, showError } = useToast();
 
-  const loadSuppliers = async () => {
+  const loadSuppliers = async (forceRefresh = false) => {
     try {
       setLoading(true);
-      const data = await suppliersApi.getAll();
-      setSuppliers(data || []);
+      const data = await masterDataCache.getSuppliers(forceRefresh);
+      // Le plus récent en haut
+      const sorted = [...(data || [])].reverse();
+      setSuppliers(sorted);
     } catch {
       setSuppliers([]);
     } finally {
@@ -55,6 +64,7 @@ export default function SuppliersPage() {
     try {
       setDeleteLoading(true);
       await suppliersApi.delete(supplierToDelete.id);
+      masterDataCache.invalidate("suppliers");
       setSuppliers((prev) => prev.filter((s) => s.id !== supplierToDelete.id));
       showSuccess(`Le fournisseur "${supplierToDelete.name}" a été supprimé.`);
       setSupplierToDelete(null);
@@ -71,6 +81,8 @@ export default function SuppliersPage() {
       s.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
       (s.taxNumber && s.taxNumber.toLowerCase().includes(searchTerm.toLowerCase()))
   );
+
+  const pagination = usePagination({ items: filteredSuppliers, initialPageSize: 10 });
 
   const getPaymentTermBadge = (terms: string) => {
     switch (terms) {
@@ -225,7 +237,7 @@ export default function SuppliersPage() {
                   </td>
                 </tr>
               ) : (
-                filteredSuppliers.map((supplier) => (
+                pagination.paginatedItems.map((supplier) => (
                   <tr
                     key={supplier.id}
                     className="transition-colors hover:bg-gray-50/50 dark:hover:bg-gray-800/50"
@@ -294,14 +306,16 @@ export default function SuppliersPage() {
                         >
                           <Pencil className="h-4 w-4" />
                         </button>
-                        <button
-                          type="button"
-                          onClick={() => setSupplierToDelete(supplier)}
-                          title="Supprimer ce fournisseur"
-                          className="flex h-8 w-8 items-center justify-center rounded-lg border border-rose-200 dark:border-rose-900/50 text-rose-600 dark:text-rose-400 hover:bg-rose-50 hover:border-rose-300 dark:hover:bg-rose-950/30 transition-colors"
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </button>
+                        {canDelete && (
+                          <button
+                            type="button"
+                            onClick={() => setSupplierToDelete(supplier)}
+                            title="Supprimer ce fournisseur"
+                            className="flex h-8 w-8 items-center justify-center rounded-lg border border-rose-200 dark:border-rose-900/50 text-rose-600 dark:text-rose-400 hover:bg-rose-50 hover:border-rose-300 dark:hover:bg-rose-950/30 transition-colors"
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </button>
+                        )}
                       </div>
                     </td>
                   </tr>
@@ -310,6 +324,7 @@ export default function SuppliersPage() {
             </tbody>
           </table>
         </div>
+        <Pagination pagination={pagination} />
       </div>
 
       {/* Creation Modal */}
@@ -317,6 +332,7 @@ export default function SuppliersPage() {
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
         onSuccess={(created) => {
+          masterDataCache.invalidate("suppliers");
           setSuppliers((prev) => [created, ...prev]);
           showSuccess(`Le fournisseur "${created.name}" a été créé avec succès.`);
         }}
@@ -328,6 +344,7 @@ export default function SuppliersPage() {
         onClose={() => setSupplierToEdit(null)}
         supplier={supplierToEdit}
         onSuccess={(updated) => {
+          masterDataCache.invalidate("suppliers");
           setSuppliers((prev) => prev.map((s) => (s.id === updated.id ? updated : s)));
           showSuccess(`Le fournisseur "${updated.name}" a été mis à jour.`);
         }}

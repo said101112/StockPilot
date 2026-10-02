@@ -2,6 +2,7 @@ package com.exmple.stockpilot.Warehouse.presentation;
 
 import com.exmple.stockpilot.Warehouse.application.port.in.CreateWarehouseUseCase;
 import com.exmple.stockpilot.Warehouse.application.port.in.GetWarehouseUseCase;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -20,6 +21,7 @@ import java.util.UUID;
  */
 @RestController
 @RequestMapping("/api/warehouses")
+@PreAuthorize("hasAnyRole('ADMIN','MANAGER','USER')")
 public class WarehouseController {
 
     private final CreateWarehouseUseCase createWarehouseUseCase;
@@ -33,6 +35,7 @@ public class WarehouseController {
         this.getWarehouseUseCase = getWarehouseUseCase;
     }
 
+    @PreAuthorize("hasRole('ADMIN')")
     @PostMapping
     public ResponseEntity<WarehouseResponse> createWarehouse(@RequestBody CreateWarehouseRequest request) {
         WarehouseResponse response = createWarehouseUseCase.create(request);

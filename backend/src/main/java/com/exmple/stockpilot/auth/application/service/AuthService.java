@@ -39,7 +39,6 @@ public class AuthService implements LoginUseCase, RefreshTokenUseCase, CurrentUs
         String accessToken = jwtService.generateAccessToken(user);
         String refreshTokenStr = jwtService.generateRefreshToken(user);
         RefreshToken rt = RefreshToken.builder()
-                .id(UUID.randomUUID())
                 .userId(user.getId())
                 .token(refreshTokenStr)
                 .expiresAt(Instant.now().plus(jwtService.getRefreshTtlDays(), ChronoUnit.DAYS))
@@ -72,7 +71,6 @@ public class AuthService implements LoginUseCase, RefreshTokenUseCase, CurrentUs
         String accessToken = jwtService.generateAccessToken(user);
         String refreshTokenStr = jwtService.generateRefreshToken(user);
         RefreshToken newRt = RefreshToken.builder()
-                .id(UUID.randomUUID())
                 .userId(user.getId())
                 .token(refreshTokenStr)
                 .expiresAt(Instant.now().plus(jwtService.getRefreshTtlDays(), ChronoUnit.DAYS))
@@ -91,12 +89,18 @@ public class AuthService implements LoginUseCase, RefreshTokenUseCase, CurrentUs
     }
 
     @Transactional
+    public void logout(String email) {
+        User user = userRepository.findByEmail(email)
+                .orElseThrow(() -> new IllegalArgumentException("User not found"));
+        refreshTokenRepository.revokeAllByUserId(user.getId());
+    }
+
+    @Transactional
     public void register(String email, String password, String firstName, String lastName, com.exmple.stockpilot.auth.domain.enums.Role role) {
         if (userRepository.existsByEmail(email)) {
             throw new IllegalArgumentException("Email already exists");
         }
         User user = User.builder()
-                .id(UUID.randomUUID())
                 .email(email)
                 .passwordHash(passwordEncoder.encode(password))
                 .firstName(firstName)

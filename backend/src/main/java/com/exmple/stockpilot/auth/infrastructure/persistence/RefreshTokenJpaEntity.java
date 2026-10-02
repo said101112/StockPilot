@@ -28,6 +28,7 @@ public class RefreshTokenJpaEntity {
     @Column(name = "expires_at", nullable = false)
     private Instant expiresAt;
 
+    @Builder.Default
     @Column(nullable = false)
     private boolean revoked = false;
 
