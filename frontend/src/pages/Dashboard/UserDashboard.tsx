@@ -282,12 +282,6 @@ export const UserDashboard: React.FC<RoleDashboardProps> = ({
       },
     ];
   }, [recentMovements, productMap]);
-      reference: "BL-1039",
-      description: "Filtre à Huile Circuit Principal",
-      quantity: "+10 pcs",
-      isPositive: true,
-    },
-  ];
 
   return (
     <div className="space-y-6 font-sans">
