@@ -54,6 +54,8 @@ export default function UserDropdown() {
   const email = user?.email || "admin@stockpilot.com";
   const roleKey = user?.role || "ADMIN";
   const roleMeta = ROLE_CONFIG[roleKey] || ROLE_CONFIG.ADMIN;
+  const isDuplicateRoleName = displayName.trim().toLowerCase() === roleMeta.label.trim().toLowerCase();
+  const roleSubtitle = isDuplicateRoleName ? "Magasin Principal" : roleMeta.label;
 
   const initials = (
     (user?.firstName?.[0] || "") + (user?.lastName?.[0] || "")
@@ -111,7 +113,7 @@ export default function UserDropdown() {
             {displayName}
           </span>
           <span className="block text-[10px] font-semibold tracking-wider uppercase text-gray-500 dark:text-gray-400">
-            {roleMeta.label}
+            {roleSubtitle}
           </span>
         </div>
 

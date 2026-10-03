@@ -14,8 +14,9 @@ import {
   ArrowRight,
   Clock,
   ShieldAlert,
-  ChevronRight,
   CheckCircle2,
+  ArrowUpRight,
+  ClipboardList,
 } from "lucide-react";
 import type { RoleDashboardProps } from "./types";
 import CreateGoodsReceiptModal from "@/features/goods-receipt/components/CreateGoodsReceiptModal";
@@ -82,18 +83,27 @@ export const UserDashboard: React.FC<RoleDashboardProps> = ({
   const movementsTodayCount = stats.totalMovementsCount > 0 ? stats.totalMovementsCount : (recentMovements.length > 0 ? recentMovements.length : 8);
   const deliveriesCount = pendingOrders.length > 0 ? pendingOrders.length : (stats.openOrdersCount > 0 ? stats.openOrdersCount : 1);
 
-  // Stock health percentages
-  const inStockPct =
-    stockHealth.inStockPct !== undefined && stockHealth.inStockPct !== 100
-      ? stockHealth.inStockPct
-      : 67;
-  const lowStockPct = stockHealth.lowStockPct > 0 ? stockHealth.lowStockPct : 33;
-  const outOfStockPct = stockHealth.outOfStockPct || 0;
+  // Stock health percentages dynamiques et cohérents avec les alertes
+  const totalRefs = stats.totalProductsCount || 15;
+  const criticalCount = alerts.filter(
+    (a) => a.currentStock <= 0 || (a.reorderPoint > 0 && a.currentStock / a.reorderPoint <= 0.45)
+  ).length;
+  const warningCount = Math.max(0, alerts.length - criticalCount);
 
-  // Primary Action Items ("À traiter maintenant") avec sévérité sémantique rigoureuse (Rouge = Rupture/Critique, Orange = Point de commande)
+  const outOfStockPct =
+    alerts.length > 0
+      ? Math.round((criticalCount / totalRefs) * 100)
+      : stockHealth.outOfStockPct || 7;
+  const lowStockPct =
+    alerts.length > 0
+      ? Math.round((warningCount / totalRefs) * 100)
+      : stockHealth.lowStockPct || 13;
+  const inStockPct = Math.max(0, 100 - outOfStockPct - lowStockPct);
+
+  // Primary Action Items ("À traiter maintenant") avec sévérité sémantique rigoureuse et tri par priorité (Critique d'abord)
   const primaryTasks = React.useMemo(() => {
     if (alerts && alerts.length > 0) {
-      return alerts.slice(0, 4).map((al, idx) => {
+      const mapped = alerts.map((al, idx) => {
         const prod = productMap[al.productId];
         const ratio = al.reorderPoint > 0 ? al.currentStock / al.reorderPoint : 0;
         const isOutOfStock = al.currentStock <= 0;
@@ -103,21 +113,25 @@ export const UserDashboard: React.FC<RoleDashboardProps> = ({
         let badgeText = "Point de commande";
         let badgeColor = "bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-950/40 dark:text-amber-400 dark:border-amber-900/60";
         let dotColor = "bg-amber-500";
+        let priority = 2; // Warning
 
         if (isOutOfStock) {
           badgeText = "Rupture de stock";
           badgeColor = "bg-red-50 text-red-700 border-red-200 dark:bg-red-950/40 dark:text-red-400 dark:border-red-900/60";
           dotColor = "bg-red-500";
+          priority = 0; // Highest urgency
         } else if (isCritical) {
           badgeText = "Stock critique";
           badgeColor = "bg-red-50 text-red-700 border-red-200 dark:bg-red-950/40 dark:text-red-400 dark:border-red-900/60";
           dotColor = "bg-red-500";
+          priority = 1; // High urgency
         }
 
         const deficit = Math.max(0, al.reorderPoint - al.currentStock);
 
         return {
           id: al.id || `al-${idx}`,
+          priority,
           badgeText,
           badgeColor,
           dotColor,
@@ -133,6 +147,9 @@ export const UserDashboard: React.FC<RoleDashboardProps> = ({
           onAction: () => onCreateRequisition(al.productId),
         };
       });
+
+      // Tri rigoureux : Rupture (0) -> Critique (1) -> Point de commande (2)
+      return mapped.sort((a, b) => a.priority - b.priority).slice(0, 4);
     }
 
     // Fallback de démonstration si aucune alerte en BDD
@@ -456,7 +473,7 @@ export const UserDashboard: React.FC<RoleDashboardProps> = ({
           {/* 4. PRIMARY SECTION: "À TRAITER MAINTENANT" (Senior Enterprise Style: Clean border, solid framing, top accent) */}
           <section className="rounded-xl border border-slate-200 bg-white shadow-2xs dark:border-slate-800 dark:bg-slate-900 overflow-hidden">
             {/* Header with subtle operational accent */}
-            <div className="border-b border-slate-100 bg-slate-50/60 px-4 py-3 sm:px-5 sm:py-3.5 dark:border-slate-800/80 dark:bg-slate-800/40 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+            <div className="border-b border-slate-100 bg-slate-50/60 px-4 py-2.5 sm:px-5 sm:py-3 dark:border-slate-800/80 dark:bg-slate-800/40 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
               <div className="flex items-center gap-2.5">
                 <div className="flex h-6 w-6 items-center justify-center rounded-md bg-amber-500/10 text-amber-600 dark:text-amber-400">
                   <ShieldAlert className="h-4 w-4" />
@@ -475,12 +492,12 @@ export const UserDashboard: React.FC<RoleDashboardProps> = ({
               </p>
             </div>
 
-            {/* List items in structured, aligned rows */}
+            {/* List items in structured, aligned rows with optimized padding */}
             <div className="divide-y divide-slate-100 dark:divide-slate-800">
               {primaryTasks.map((task) => (
                 <div
                   key={task.id}
-                  className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 px-4 py-3.5 sm:px-5 hover:bg-slate-50/60 dark:hover:bg-slate-800/30 transition-colors"
+                  className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 px-4 py-2.5 sm:px-5 hover:bg-slate-50/60 dark:hover:bg-slate-800/30 transition-colors"
                 >
                   <div className="flex items-start sm:items-center gap-3 min-w-0">
                     {/* Fixed-width status badge with semantic dot */}
@@ -524,14 +541,14 @@ export const UserDashboard: React.FC<RoleDashboardProps> = ({
                     </div>
                   </div>
 
-                  {/* Standardized contextual action button */}
+                  {/* Standardized contextual action button - Unifié & Harmonieux */}
                   <div className="shrink-0 self-end sm:self-center">
                     <Button
-                      variant={task.actionType === "primary" ? "primary" : "outline"}
+                      variant="outline"
                       onClick={task.onAction}
-                      className={`h-8 px-3.5 text-xs font-semibold rounded-lg min-w-[130px] justify-center transition-colors ${
+                      className={`h-8 px-3.5 text-xs font-semibold rounded-lg min-w-[130px] justify-center transition-colors border shadow-2xs ${
                         task.actionType === "primary"
-                          ? "bg-brand-600 hover:bg-brand-700 text-white shadow-2xs"
+                          ? "border-red-200 bg-red-50/60 text-red-700 hover:bg-red-100 hover:border-red-300 dark:border-red-900/60 dark:bg-red-950/40 dark:text-red-300"
                           : "border-slate-200 bg-white text-slate-700 hover:bg-slate-50 hover:border-slate-300 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200 dark:hover:bg-slate-700"
                       }`}
                     >
@@ -544,8 +561,8 @@ export const UserDashboard: React.FC<RoleDashboardProps> = ({
           </section>
 
           {/* 6. STOCK HEALTH: "État global du stock" */}
-          <section className="rounded-xl border border-slate-200 bg-white p-4 sm:p-5 shadow-2xs dark:border-slate-800 dark:bg-slate-900 order-4 lg:order-none">
-            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-3">
+          <section className="rounded-xl border border-slate-200 bg-white p-4 shadow-2xs dark:border-slate-800 dark:bg-slate-900 order-4 lg:order-none">
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2.5 mb-2.5">
               <div>
                 <h3 className="text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider">
                   État global du stock
@@ -559,7 +576,7 @@ export const UserDashboard: React.FC<RoleDashboardProps> = ({
                 <div className="flex items-center gap-1.5">
                   <span className="h-2 w-2 rounded-full bg-emerald-500" />
                   <span className="text-slate-700 dark:text-slate-300 tabular-nums">
-                    {inStockPct}% Stock conforme
+                    {inStockPct}% Conforme
                   </span>
                 </div>
                 <div className="flex items-center gap-1.5">
@@ -681,22 +698,7 @@ export const UserDashboard: React.FC<RoleDashboardProps> = ({
             </p>
 
             <div className="flex flex-col gap-2">
-              {/* Action 1: DA */}
-              <button
-                type="button"
-                onClick={() => onCreateRequisition()}
-                className="group flex items-center justify-between w-full rounded-lg border border-slate-200 bg-white p-2.5 text-left text-xs sm:text-sm font-semibold text-slate-800 transition-colors hover:border-slate-300 hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200 dark:hover:bg-slate-750"
-              >
-                <div className="flex items-center gap-2.5">
-                  <FilePlus2 className="h-4 w-4 text-slate-500 group-hover:text-brand-600 transition-colors" />
-                  <span>Nouvelle demande d'achat</span>
-                </div>
-                <span className="font-mono text-[11px] font-semibold text-slate-500 bg-slate-100 dark:bg-slate-700 dark:text-slate-300 px-1.5 py-0.5 rounded">
-                  DA
-                </span>
-              </button>
-
-              {/* Action 2: Réception */}
+              {/* Action 1: Réception BL */}
               <button
                 type="button"
                 onClick={() => handleOpenReceipt()}
@@ -704,41 +706,54 @@ export const UserDashboard: React.FC<RoleDashboardProps> = ({
               >
                 <div className="flex items-center gap-2.5">
                   <Truck className="h-4 w-4 text-slate-500 group-hover:text-emerald-600 transition-colors" />
-                  <span>Réceptionner une livraison</span>
+                  <span>Réceptionner une livraison (BL)</span>
                 </div>
                 <span className="font-mono text-[11px] font-semibold text-slate-500 bg-slate-100 dark:bg-slate-700 dark:text-slate-300 px-1.5 py-0.5 rounded">
                   BL
                 </span>
               </button>
 
-              {/* Action 3: Casse */}
+              {/* Action 2: Sortie / Consommation */}
+              <Link
+                to="/movements"
+                className="group flex items-center justify-between w-full rounded-lg border border-slate-200 bg-white p-2.5 text-left text-xs sm:text-sm font-semibold text-slate-800 transition-colors hover:border-slate-300 hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200 dark:hover:bg-slate-750"
+              >
+                <div className="flex items-center gap-2.5">
+                  <ArrowUpRight className="h-4 w-4 text-slate-500 group-hover:text-blue-600 transition-colors" />
+                  <span>Déclarer une sortie / consommation</span>
+                </div>
+                <span className="font-mono text-[11px] font-semibold text-slate-500 bg-slate-100 dark:bg-slate-700 dark:text-slate-300 px-1.5 py-0.5 rounded">
+                  OUT
+                </span>
+              </Link>
+
+              {/* Action 3: Casse / Rebut */}
               <Link
                 to="/inventory"
                 className="group flex items-center justify-between w-full rounded-lg border border-slate-200 bg-white p-2.5 text-left text-xs sm:text-sm font-semibold text-slate-800 transition-colors hover:border-slate-300 hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200 dark:hover:bg-slate-750"
               >
                 <div className="flex items-center gap-2.5">
                   <Flame className="h-4 w-4 text-slate-500 group-hover:text-rose-600 transition-colors" />
-                  <span>Déclarer une casse</span>
+                  <span>Déclarer une casse / rebut</span>
                 </div>
                 <span className="font-mono text-[11px] font-semibold text-slate-500 bg-slate-100 dark:bg-slate-700 dark:text-slate-300 px-1.5 py-0.5 rounded">
                   551
                 </span>
               </Link>
 
-              {/* Action 4: Recherche */}
-              <button
-                type="button"
-                onClick={handleSearchFocus}
+              {/* Action 4: Inventaire tournant */}
+              <Link
+                to="/inventory"
                 className="group flex items-center justify-between w-full rounded-lg border border-slate-200 bg-white p-2.5 text-left text-xs sm:text-sm font-semibold text-slate-800 transition-colors hover:border-slate-300 hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200 dark:hover:bg-slate-750"
               >
                 <div className="flex items-center gap-2.5">
-                  <Search className="h-4 w-4 text-slate-500 group-hover:text-blue-600 transition-colors" />
-                  <span>Rechercher un article</span>
+                  <ClipboardList className="h-4 w-4 text-slate-500 group-hover:text-amber-600 transition-colors" />
+                  <span>Inventaire tournant / comptage</span>
                 </div>
                 <span className="font-mono text-[11px] font-semibold text-slate-500 bg-slate-100 dark:bg-slate-700 dark:text-slate-300 px-1.5 py-0.5 rounded">
-                  ⌘K
+                  INV
                 </span>
-              </button>
+              </Link>
             </div>
           </section>
 

@@ -110,7 +110,7 @@ const ROLE_BADGE_META: Record<
       "bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-950/40 dark:text-blue-300 dark:border-blue-800",
   },
   USER: {
-    label: "Espace Magasinier Stock",
+    label: "Espace Magasin & Stocks",
     icon: <Package className="w-3.5 h-3.5" />,
     badgeClass:
       "bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950/40 dark:text-emerald-300 dark:border-emerald-800",
