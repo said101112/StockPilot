@@ -116,7 +116,7 @@ export default function CategorySelect({ value, onChange, className = "", id }: 
         aria-haspopup="listbox"
         aria-expanded={isOpen}
       >
-        <div className="flex items-center gap-2.5 min-w-0 pr-2">
+        <div className="flex items-center gap-2 min-w-0 pr-2">
           <span
             className={`h-2.5 w-2.5 shrink-0 rounded-full ${
               CATEGORY_DOT_COLORS[selectedCategory.code] || "bg-gray-400"
@@ -124,9 +124,6 @@ export default function CategorySelect({ value, onChange, className = "", id }: 
           />
           <span className="truncate font-semibold text-gray-900 dark:text-white">
             {selectedCategory.label}
-          </span>
-          <span className="hidden sm:inline-flex rounded-md bg-gray-100 px-2 py-0.5 text-[11px] font-medium text-gray-600 dark:bg-gray-700/60 dark:text-gray-300">
-            {selectedCategory.group}
           </span>
         </div>
 
