@@ -90,21 +90,44 @@ export const UserDashboard: React.FC<RoleDashboardProps> = ({
   const lowStockPct = stockHealth.lowStockPct > 0 ? stockHealth.lowStockPct : 33;
   const outOfStockPct = stockHealth.outOfStockPct || 0;
 
-  // Primary Action Items ("À traiter maintenant") liés aux alertes réelles de la BDD
+  // Primary Action Items ("À traiter maintenant") avec sévérité sémantique rigoureuse (Rouge = Rupture/Critique, Orange = Point de commande)
   const primaryTasks = React.useMemo(() => {
     if (alerts && alerts.length > 0) {
       return alerts.slice(0, 4).map((al, idx) => {
         const prod = productMap[al.productId];
-        const isCritical = al.currentStock <= 0;
+        const ratio = al.reorderPoint > 0 ? al.currentStock / al.reorderPoint : 0;
+        const isOutOfStock = al.currentStock <= 0;
+        const isCritical = isOutOfStock || ratio <= 0.45;
+        const pct = Math.min(100, Math.round(ratio * 100));
+
+        let badgeText = "Point de commande";
+        let badgeColor = "bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-950/40 dark:text-amber-400 dark:border-amber-900/60";
+        let dotColor = "bg-amber-500";
+
+        if (isOutOfStock) {
+          badgeText = "Rupture de stock";
+          badgeColor = "bg-red-50 text-red-700 border-red-200 dark:bg-red-950/40 dark:text-red-400 dark:border-red-900/60";
+          dotColor = "bg-red-500";
+        } else if (isCritical) {
+          badgeText = "Stock critique";
+          badgeColor = "bg-red-50 text-red-700 border-red-200 dark:bg-red-950/40 dark:text-red-400 dark:border-red-900/60";
+          dotColor = "bg-red-500";
+        }
+
+        const deficit = Math.max(0, al.reorderPoint - al.currentStock);
+
         return {
           id: al.id || `al-${idx}`,
-          badgeText: isCritical ? "Critique" : "Point de commande",
-          badgeColor: isCritical
-            ? "bg-red-50 text-red-700 border-red-200 dark:bg-red-950/40 dark:text-red-400 dark:border-red-900/60"
-            : "bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-950/40 dark:text-amber-400 dark:border-amber-900/60",
+          badgeText,
+          badgeColor,
+          dotColor,
           title: prod?.name || `Article ${al.productId}`,
           reference: prod?.sku || "SKU-AUTO",
-          details: `Stock: ${al.currentStock} pcs · Seuil: ${al.reorderPoint} pcs`,
+          currentStock: al.currentStock,
+          reorderPoint: al.reorderPoint,
+          pct,
+          deficit,
+          details: `Stock: ${al.currentStock} pcs · Seuil: ${al.reorderPoint} pcs (Déficit: -${deficit} pcs)`,
           actionText: "Réapprovisionner",
           actionType: isCritical ? ("primary" as const) : ("secondary" as const),
           onAction: () => onCreateRequisition(al.productId),
@@ -112,15 +135,20 @@ export const UserDashboard: React.FC<RoleDashboardProps> = ({
       });
     }
 
-    // Fallback d'affichage si aucune alerte en BDD
+    // Fallback de démonstration si aucune alerte en BDD
     return [
       {
         id: "task-critical-1",
-        badgeText: "Critique",
+        badgeText: "Rupture critique",
         badgeColor: "bg-red-50 text-red-700 border-red-200 dark:bg-red-950/40 dark:text-red-400 dark:border-red-900/60",
+        dotColor: "bg-red-500",
         title: "Capteur Pression Frein TGV",
         reference: "SKU-BRK-2416",
-        details: "Stock: 2 pcs · Seuil: 5 pcs",
+        currentStock: 2,
+        reorderPoint: 5,
+        pct: 40,
+        deficit: 3,
+        details: "Stock: 2 pcs · Seuil: 5 pcs (Déficit: -3 pcs)",
         actionText: "Réapprovisionner",
         actionType: "primary" as const,
         onAction: () => onCreateRequisition(),
@@ -129,9 +157,14 @@ export const UserDashboard: React.FC<RoleDashboardProps> = ({
         id: "task-warning-2",
         badgeText: "Point de commande",
         badgeColor: "bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-950/40 dark:text-amber-400 dark:border-amber-900/60",
+        dotColor: "bg-amber-500",
         title: "Roulement à Billes Céramique 608-RS",
         reference: "SKU-ROUL-608",
-        details: "Stock: 14 pcs · Seuil: 20 pcs",
+        currentStock: 14,
+        reorderPoint: 20,
+        pct: 70,
+        deficit: 6,
+        details: "Stock: 14 pcs · Seuil: 20 pcs (Déficit: -6 pcs)",
         actionText: "Réapprovisionner",
         actionType: "secondary" as const,
         onAction: () => onCreateRequisition(),
@@ -140,8 +173,13 @@ export const UserDashboard: React.FC<RoleDashboardProps> = ({
         id: "task-delivery-3",
         badgeText: "Livraison à quai",
         badgeColor: "bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-950/40 dark:text-blue-400 dark:border-blue-900/60",
+        dotColor: "bg-blue-500",
         title: "Livraison BL-1042 — Alstom Transport",
         reference: "PO-2026-084",
+        currentStock: 0,
+        reorderPoint: 24,
+        pct: 100,
+        deficit: 0,
         details: "24 pcs attendues · Quai Déchargement 02",
         actionText: "Réceptionner",
         actionType: "primary" as const,
@@ -151,8 +189,13 @@ export const UserDashboard: React.FC<RoleDashboardProps> = ({
         id: "task-scrap-4",
         badgeText: "Signalement casse",
         badgeColor: "bg-rose-50 text-rose-700 border-rose-200 dark:bg-rose-950/40 dark:text-rose-400 dark:border-rose-900/60",
+        dotColor: "bg-rose-500",
         title: "Vérin Pneumatique Double Effet",
         reference: "SKU-VRN-104",
+        currentStock: 1,
+        reorderPoint: 1,
+        pct: 0,
+        deficit: 1,
         details: "1 pièce endommagée au déchargement à déclasser",
         actionText: "Déclarer la casse",
         actionType: "secondary" as const,
@@ -350,18 +393,20 @@ export const UserDashboard: React.FC<RoleDashboardProps> = ({
         <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-2xs dark:border-slate-800 dark:bg-slate-900 transition-colors hover:border-slate-300 dark:hover:border-slate-700">
           <div className="flex items-center justify-between text-slate-500 dark:text-slate-400">
             <span className="text-[11px] font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">
-              Alertes
+              Alertes de stock
             </span>
-            <AlertTriangle className="h-4 w-4 text-amber-500" />
+            <AlertTriangle className="h-4 w-4 text-red-500" />
           </div>
           <div className="mt-1.5 flex items-baseline gap-1.5">
-            <span className="text-2xl font-bold tracking-tight text-amber-600 dark:text-amber-400 tabular-nums">
+            <span className="text-2xl font-bold tracking-tight text-red-600 dark:text-red-400 tabular-nums">
               {activeAlertsCount}
             </span>
-            <span className="text-xs font-semibold text-amber-600/90 dark:text-amber-400/90">à traiter</span>
+            <span className="text-xs font-semibold text-red-600/90 dark:text-red-400/90">
+              à traiter
+            </span>
           </div>
           <p className="mt-1 text-xs text-slate-500 dark:text-slate-400 truncate">
-            Sous seuil de réapprovisionnement
+            Articles sous seuil ou en rupture critique
           </p>
         </div>
 
@@ -438,14 +483,15 @@ export const UserDashboard: React.FC<RoleDashboardProps> = ({
                   className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 px-4 py-3.5 sm:px-5 hover:bg-slate-50/60 dark:hover:bg-slate-800/30 transition-colors"
                 >
                   <div className="flex items-start sm:items-center gap-3 min-w-0">
-                    {/* Fixed-width status badge */}
+                    {/* Fixed-width status badge with semantic dot */}
                     <span
-                      className={`inline-flex shrink-0 items-center justify-center px-2 py-0.5 text-[11px] font-semibold rounded-md border min-w-[124px] text-center ${task.badgeColor}`}
+                      className={`inline-flex shrink-0 items-center justify-center gap-1.5 px-2.5 py-0.5 text-[11px] font-semibold rounded-md border min-w-[134px] text-center ${task.badgeColor}`}
                     >
+                      <span className={`h-1.5 w-1.5 rounded-full ${task.dotColor}`} />
                       {task.badgeText}
                     </span>
 
-                    {/* Designation, SKU & Quantities */}
+                    {/* Designation, SKU & Quantities with Mini-Gauge */}
                     <div className="min-w-0">
                       <div className="flex items-center gap-2 flex-wrap">
                         <span className="text-sm font-semibold text-slate-900 dark:text-slate-100">
@@ -455,9 +501,26 @@ export const UserDashboard: React.FC<RoleDashboardProps> = ({
                           {task.reference}
                         </span>
                       </div>
-                      <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5 font-medium tabular-nums">
-                        {task.details}
-                      </p>
+                      <div className="flex items-center gap-2.5 mt-0.5 flex-wrap">
+                        <span className="text-xs text-slate-600 dark:text-slate-400 font-medium tabular-nums">
+                          {task.details}
+                        </span>
+                        {task.pct !== undefined && task.reorderPoint > 0 && (
+                          <div className="flex items-center gap-1.5">
+                            <div className="w-16 h-1.5 rounded-full bg-slate-100 dark:bg-slate-800 overflow-hidden flex">
+                              <div
+                                style={{ width: `${task.pct}%` }}
+                                className={`h-full ${
+                                  task.pct <= 45 ? "bg-red-500" : "bg-amber-500"
+                                }`}
+                              />
+                            </div>
+                            <span className="text-[10px] font-mono font-medium text-slate-500 tabular-nums">
+                              {task.pct}%
+                            </span>
+                          </div>
+                        )}
+                      </div>
                     </div>
                   </div>
 
