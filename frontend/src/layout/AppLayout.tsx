@@ -22,7 +22,7 @@ const LayoutContent: React.FC = () => {
         )}
       >
         <AppHeader />
-        <main className="flex-1 w-full min-w-0 p-4 md:p-6 mx-auto max-w-7xl">
+        <main className="flex-1 w-full min-w-0 p-4 sm:p-6 lg:p-7 transition-all duration-300 ease-in-out">
           <Outlet />
         </main>
       </div>

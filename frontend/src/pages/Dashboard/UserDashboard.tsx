@@ -22,11 +22,15 @@ import CreateGoodsReceiptModal from "@/features/goods-receipt/components/CreateG
 
 export const UserDashboard: React.FC<RoleDashboardProps> = ({
   stats,
+  alerts = [],
+  recentMovements = [],
+  productMap = {},
   stockHealth,
   loading,
   onRefresh,
   onCreateRequisition,
   orders = [],
+  suppliers = [],
 }) => {
   const navigate = useNavigate();
   const [syncTime, setSyncTime] = useState<string>("10:42");
@@ -56,13 +60,27 @@ export const UserDashboard: React.FC<RoleDashboardProps> = ({
     }
   };
 
-  // KPI Metrics (using live data when available, with realistic enterprise fallback)
+  // Map des fournisseurs pour résoudre les noms réels
+  const supplierMap = React.useMemo(() => {
+    const map: Record<string, string> = {};
+    suppliers.forEach((s) => {
+      map[s.id] = s.name;
+    });
+    return map;
+  }, [suppliers]);
+
+  // Vraies commandes ouvertes à réceptionner (ISSUED ou PARTIALLY_RECEIVED)
+  const pendingOrders = React.useMemo(() => {
+    return orders.filter(
+      (o) => o.status === "ISSUED" || o.status === "PARTIALLY_RECEIVED"
+    );
+  }, [orders]);
+
+  // KPI Metrics (données réelles issues de l'API avec fallback démonstratif si BDD vide)
   const totalStockCount = stats.totalStockCount > 0 ? stats.totalStockCount : 384;
-  const activeAlertsCount = stats.activeAlertsCount > 0 ? stats.activeAlertsCount : 3;
-  const movementsTodayCount = stats.totalMovementsCount > 0 ? stats.totalMovementsCount : 8;
-  const deliveriesCount =
-    orders.filter((o) => o.status === "ISSUED" || o.status === "PARTIALLY_RECEIVED").length ||
-    (stats.openOrdersCount > 0 ? stats.openOrdersCount : 1);
+  const activeAlertsCount = stats.activeAlertsCount > 0 ? stats.activeAlertsCount : (alerts.length > 0 ? alerts.length : 3);
+  const movementsTodayCount = stats.totalMovementsCount > 0 ? stats.totalMovementsCount : (recentMovements.length > 0 ? recentMovements.length : 8);
+  const deliveriesCount = pendingOrders.length > 0 ? pendingOrders.length : (stats.openOrdersCount > 0 ? stats.openOrdersCount : 1);
 
   // Stock health percentages
   const inStockPct =
@@ -72,122 +90,198 @@ export const UserDashboard: React.FC<RoleDashboardProps> = ({
   const lowStockPct = stockHealth.lowStockPct > 0 ? stockHealth.lowStockPct : 33;
   const outOfStockPct = stockHealth.outOfStockPct || 0;
 
-  // Primary Action Items ("À traiter maintenant")
-  const primaryTasks = [
-    {
-      id: "task-critical-1",
-      badgeText: "Critique",
-      badgeColor: "bg-red-50 text-red-700 border-red-200 dark:bg-red-950/40 dark:text-red-400 dark:border-red-900/60",
-      title: "Capteur Pression Frein TGV",
-      reference: "SKU-BRK-2416",
-      details: "Stock: 2 pcs · Seuil: 5 pcs",
-      actionText: "Réapprovisionner",
-      actionType: "primary" as const,
-      onAction: () => onCreateRequisition(),
-    },
-    {
-      id: "task-warning-2",
-      badgeText: "Point de commande",
-      badgeColor: "bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-950/40 dark:text-amber-400 dark:border-amber-900/60",
-      title: "Roulement à Billes Céramique 608-RS",
-      reference: "SKU-ROUL-608",
-      details: "Stock: 14 pcs · Seuil: 20 pcs",
-      actionText: "Réapprovisionner",
-      actionType: "secondary" as const,
-      onAction: () => onCreateRequisition(),
-    },
-    {
-      id: "task-delivery-3",
-      badgeText: "Livraison à quai",
-      badgeColor: "bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-950/40 dark:text-blue-400 dark:border-blue-900/60",
-      title: "Livraison BL-1042 — Alstom Transport",
-      reference: "PO-2026-084",
-      details: "24 pcs attendues · Quai Déchargement 02",
-      actionText: "Réceptionner",
-      actionType: "primary" as const,
-      onAction: () => handleOpenReceipt("po-mock-alstom"),
-    },
-    {
-      id: "task-scrap-4",
-      badgeText: "Signalement casse",
-      badgeColor: "bg-rose-50 text-rose-700 border-rose-200 dark:bg-rose-950/40 dark:text-rose-400 dark:border-rose-900/60",
-      title: "Vérin Pneumatique Double Effet",
-      reference: "SKU-VRN-104",
-      details: "1 pièce endommagée au déchargement à déclasser",
-      actionText: "Déclarer la casse",
-      actionType: "secondary" as const,
-      onAction: () => navigate("/inventory"),
-    },
-  ];
+  // Primary Action Items ("À traiter maintenant") liés aux alertes réelles de la BDD
+  const primaryTasks = React.useMemo(() => {
+    if (alerts && alerts.length > 0) {
+      return alerts.slice(0, 4).map((al, idx) => {
+        const prod = productMap[al.productId];
+        const isCritical = al.currentStock <= 0;
+        return {
+          id: al.id || `al-${idx}`,
+          badgeText: isCritical ? "Critique" : "Point de commande",
+          badgeColor: isCritical
+            ? "bg-red-50 text-red-700 border-red-200 dark:bg-red-950/40 dark:text-red-400 dark:border-red-900/60"
+            : "bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-950/40 dark:text-amber-400 dark:border-amber-900/60",
+          title: prod?.name || `Article ${al.productId}`,
+          reference: prod?.sku || "SKU-AUTO",
+          details: `Stock: ${al.currentStock} pcs · Seuil: ${al.reorderPoint} pcs`,
+          actionText: "Réapprovisionner",
+          actionType: isCritical ? ("primary" as const) : ("secondary" as const),
+          onAction: () => onCreateRequisition(al.productId),
+        };
+      });
+    }
 
-  // Deliveries List
-  const deliveriesList = [
-    {
-      id: "deliv-1",
-      blNumber: "BL-1042",
-      supplier: "Alstom Transport",
-      expectedTime: "11:30 (Aujourd'hui)",
-      itemsCount: 24,
-      status: "À quai",
-      statusColor: "bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950/40 dark:text-emerald-400 dark:border-emerald-800",
-    },
-    {
-      id: "deliv-2",
-      blNumber: "BL-1045",
-      supplier: "Knorr-Bremse Rail",
-      expectedTime: "14:15 (Aujourd'hui)",
-      itemsCount: 12,
-      status: "En transit",
-      statusColor: "bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-950/40 dark:text-blue-400 dark:border-blue-800",
-    },
-    {
-      id: "deliv-3",
-      blNumber: "BL-1049",
-      supplier: "SKF France Industrie",
-      expectedTime: "Demain 09:00",
-      itemsCount: 40,
-      status: "Planifié",
-      statusColor: "bg-slate-100 text-slate-700 border-slate-200 dark:bg-slate-800 dark:text-slate-300 dark:border-slate-700",
-    },
-  ];
+    // Fallback d'affichage si aucune alerte en BDD
+    return [
+      {
+        id: "task-critical-1",
+        badgeText: "Critique",
+        badgeColor: "bg-red-50 text-red-700 border-red-200 dark:bg-red-950/40 dark:text-red-400 dark:border-red-900/60",
+        title: "Capteur Pression Frein TGV",
+        reference: "SKU-BRK-2416",
+        details: "Stock: 2 pcs · Seuil: 5 pcs",
+        actionText: "Réapprovisionner",
+        actionType: "primary" as const,
+        onAction: () => onCreateRequisition(),
+      },
+      {
+        id: "task-warning-2",
+        badgeText: "Point de commande",
+        badgeColor: "bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-950/40 dark:text-amber-400 dark:border-amber-900/60",
+        title: "Roulement à Billes Céramique 608-RS",
+        reference: "SKU-ROUL-608",
+        details: "Stock: 14 pcs · Seuil: 20 pcs",
+        actionText: "Réapprovisionner",
+        actionType: "secondary" as const,
+        onAction: () => onCreateRequisition(),
+      },
+      {
+        id: "task-delivery-3",
+        badgeText: "Livraison à quai",
+        badgeColor: "bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-950/40 dark:text-blue-400 dark:border-blue-900/60",
+        title: "Livraison BL-1042 — Alstom Transport",
+        reference: "PO-2026-084",
+        details: "24 pcs attendues · Quai Déchargement 02",
+        actionText: "Réceptionner",
+        actionType: "primary" as const,
+        onAction: () => handleOpenReceipt(),
+      },
+      {
+        id: "task-scrap-4",
+        badgeText: "Signalement casse",
+        badgeColor: "bg-rose-50 text-rose-700 border-rose-200 dark:bg-rose-950/40 dark:text-rose-400 dark:border-rose-900/60",
+        title: "Vérin Pneumatique Double Effet",
+        reference: "SKU-VRN-104",
+        details: "1 pièce endommagée au déchargement à déclasser",
+        actionText: "Déclarer la casse",
+        actionType: "secondary" as const,
+        onAction: () => navigate("/inventory"),
+      },
+    ];
+  }, [alerts, productMap, onCreateRequisition, navigate]);
 
-  // Recent Movements List
-  const fallbackMovements = [
-    {
-      id: "m-1",
-      time: "10:42",
-      type: "Réception",
-      typeColor: "bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950/40 dark:text-emerald-400 dark:border-emerald-800",
-      reference: "BL-1042",
-      description: "Module Électronique de Freinage",
-      quantity: "+24 pcs",
-      isPositive: true,
-    },
-    {
-      id: "m-2",
-      time: "10:18",
-      type: "Sortie",
-      typeColor: "bg-slate-100 text-slate-700 border-slate-200 dark:bg-slate-800 dark:text-slate-300 dark:border-slate-700",
-      reference: "SKU-2416",
-      description: "Capteur Pression Frein TGV",
-      quantity: "-2 pcs",
-      isPositive: false,
-    },
-    {
-      id: "m-3",
-      time: "09:54",
-      type: "Casse",
-      typeColor: "bg-rose-50 text-rose-700 border-rose-200 dark:bg-rose-950/40 dark:text-rose-400 dark:border-rose-800",
-      reference: "SKU-8831",
-      description: "Vanne Électropneumatique",
-      quantity: "-1 pcs",
-      isPositive: false,
-    },
-    {
-      id: "m-4",
-      time: "09:12",
-      type: "Réception",
-      typeColor: "bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950/40 dark:text-emerald-400 dark:border-emerald-800",
+  // Livraisons à venir : Commandes réelles (ISSUED / PARTIALLY_RECEIVED) depuis la BDD ou fallback
+  const deliveriesList = React.useMemo(() => {
+    if (pendingOrders && pendingOrders.length > 0) {
+      return pendingOrders.slice(0, 3).map((po) => {
+        const itemsCount = po.items
+          ? po.items.reduce((sum, item) => sum + (item.orderedQuantity - (item.receivedQuantity || 0)), 0)
+          : 1;
+        return {
+          id: po.id,
+          blNumber: po.poNumber,
+          supplier: supplierMap[po.supplierId] || "Fournisseur Partenaire",
+          expectedTime: po.expectedDeliveryDate
+            ? new Date(po.expectedDeliveryDate).toLocaleDateString("fr-FR", { day: "2-digit", month: "short" })
+            : "En cours",
+          itemsCount: itemsCount > 0 ? itemsCount : (po.items?.length || 1),
+          status: po.status === "PARTIALLY_RECEIVED" ? "Partiel" : "À quai",
+          statusColor: po.status === "PARTIALLY_RECEIVED"
+            ? "bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-950/40 dark:text-amber-400 dark:border-amber-800"
+            : "bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950/40 dark:text-emerald-400 dark:border-emerald-800",
+        };
+      });
+    }
+
+    return [
+      {
+        id: "deliv-1",
+        blNumber: "BL-1042",
+        supplier: "Alstom Transport",
+        expectedTime: "11:30 (Aujourd'hui)",
+        itemsCount: 24,
+        status: "À quai",
+        statusColor: "bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950/40 dark:text-emerald-400 dark:border-emerald-800",
+      },
+      {
+        id: "deliv-2",
+        blNumber: "BL-1045",
+        supplier: "Knorr-Bremse Rail",
+        expectedTime: "14:15 (Aujourd'hui)",
+        itemsCount: 12,
+        status: "En transit",
+        statusColor: "bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-950/40 dark:text-blue-400 dark:border-blue-800",
+      },
+      {
+        id: "deliv-3",
+        blNumber: "BL-1049",
+        supplier: "SKF France Industrie",
+        expectedTime: "Demain 09:00",
+        itemsCount: 40,
+        status: "Planifié",
+        statusColor: "bg-slate-100 text-slate-700 border-slate-200 dark:bg-slate-800 dark:text-slate-300 dark:border-slate-700",
+      },
+    ];
+  }, [pendingOrders, supplierMap]);
+
+  // Mouvements récents depuis la BDD ou fallback
+  const movementsList = React.useMemo(() => {
+    if (recentMovements && recentMovements.length > 0) {
+      return recentMovements.slice(0, 5).map((mov) => {
+        const prod = productMap[mov.productId];
+        const isReceipt = mov.type === "RECEIPT";
+        const isScrap = mov.type === "SCRAP";
+        return {
+          id: mov.id,
+          time: new Date(mov.timestamp).toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" }),
+          type: isReceipt ? "Réception" : isScrap ? "Casse" : "Sortie",
+          typeColor: isReceipt
+            ? "bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950/40 dark:text-emerald-400 dark:border-emerald-800"
+            : isScrap
+            ? "bg-rose-50 text-rose-700 border-rose-200 dark:bg-rose-950/40 dark:text-rose-400 dark:border-rose-800"
+            : "bg-slate-100 text-slate-700 border-slate-200 dark:bg-slate-800 dark:text-slate-300 dark:border-slate-700",
+          reference: mov.referenceDocument || prod?.sku || "DOC-REF",
+          description: prod?.name || mov.reason || "Mouvement de stock",
+          quantity: `${mov.quantity > 0 ? "+" : ""}${mov.quantity} pcs`,
+          isPositive: mov.quantity > 0,
+        };
+      });
+    }
+
+    return [
+      {
+        id: "m-1",
+        time: "10:42",
+        type: "Réception",
+        typeColor: "bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950/40 dark:text-emerald-400 dark:border-emerald-800",
+        reference: "BL-1042",
+        description: "Module Électronique de Freinage",
+        quantity: "+24 pcs",
+        isPositive: true,
+      },
+      {
+        id: "m-2",
+        time: "10:18",
+        type: "Sortie",
+        typeColor: "bg-slate-100 text-slate-700 border-slate-200 dark:bg-slate-800 dark:text-slate-300 dark:border-slate-700",
+        reference: "SKU-2416",
+        description: "Capteur Pression Frein TGV",
+        quantity: "-2 pcs",
+        isPositive: false,
+      },
+      {
+        id: "m-3",
+        time: "09:54",
+        type: "Casse",
+        typeColor: "bg-rose-50 text-rose-700 border-rose-200 dark:bg-rose-950/40 dark:text-rose-400 dark:border-rose-800",
+        reference: "SKU-8831",
+        description: "Vanne Électropneumatique",
+        quantity: "-1 pcs",
+        isPositive: false,
+      },
+      {
+        id: "m-4",
+        time: "09:12",
+        type: "Réception",
+        typeColor: "bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950/40 dark:text-emerald-400 dark:border-emerald-800",
+        reference: "BL-1039",
+        description: "Filtre à Huile Circuit Principal",
+        quantity: "+10 pcs",
+        isPositive: true,
+      },
+    ];
+  }, [recentMovements, productMap]);
       reference: "BL-1039",
       description: "Filtre à Huile Circuit Principal",
       quantity: "+10 pcs",
@@ -483,7 +577,7 @@ export const UserDashboard: React.FC<RoleDashboardProps> = ({
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100 dark:divide-slate-800 font-medium">
-                  {fallbackMovements.map((mov) => (
+                  {movementsList.map((mov) => (
                     <tr key={mov.id} className="hover:bg-slate-50/60 dark:hover:bg-slate-800/30">
                       <td className="py-2.5 pr-4 text-slate-500 dark:text-slate-400 font-mono text-xs tabular-nums">
                         {mov.time}
