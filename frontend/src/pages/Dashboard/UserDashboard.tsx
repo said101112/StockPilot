@@ -220,8 +220,8 @@ export const UserDashboard: React.FC<RoleDashboardProps> = ({
     if (recentMovements && recentMovements.length > 0) {
       return recentMovements.slice(0, 5).map((mov) => {
         const prod = productMap[mov.productId];
-        const isReceipt = mov.type === "RECEIPT";
-        const isScrap = mov.type === "SCRAP";
+        const isReceipt = mov.type === "GOODS_RECEIPT_PO" || mov.type === "INITIAL_STOCK";
+        const isScrap = mov.type === "SCRAP_DAMAGED";
         return {
           id: mov.id,
           time: new Date(mov.timestamp).toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" }),
@@ -231,8 +231,8 @@ export const UserDashboard: React.FC<RoleDashboardProps> = ({
             : isScrap
             ? "bg-rose-50 text-rose-700 border-rose-200 dark:bg-rose-950/40 dark:text-rose-400 dark:border-rose-800"
             : "bg-slate-100 text-slate-700 border-slate-200 dark:bg-slate-800 dark:text-slate-300 dark:border-slate-700",
-          reference: mov.referenceDocument || prod?.sku || "DOC-REF",
-          description: prod?.name || mov.reason || "Mouvement de stock",
+          reference: mov.referenceDocument || mov.movementNumber || prod?.sku || "DOC-REF",
+          description: prod?.name || "Mouvement de stock",
           quantity: `${mov.quantity > 0 ? "+" : ""}${mov.quantity} pcs`,
           isPositive: mov.quantity > 0,
         };
