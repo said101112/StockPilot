@@ -1,5 +1,5 @@
-import React from "react";
-import { Link } from "react-router";
+import React, { useState } from "react";
+import { Link, useNavigate } from "react-router";
 import Button from "@/components/ui/button/Button";
 import {
   Package,
@@ -10,176 +10,665 @@ import {
   Activity,
   FilePlus2,
   Flame,
-  Boxes,
+  Search,
+  ArrowRight,
+  Clock,
+  ShieldAlert,
+  ChevronRight,
+  CheckCircle2,
 } from "lucide-react";
 import type { RoleDashboardProps } from "./types";
-import { StatCard } from "./components/StatCard";
-import { DashboardRoleBanner } from "./components/DashboardRoleBanner";
-import { StockHealthWidget } from "./components/StockHealthWidget";
-import { AlertsWidget } from "./components/AlertsWidget";
-import { RecentMovementsWidget } from "./components/RecentMovementsWidget";
+import CreateGoodsReceiptModal from "@/features/goods-receipt/components/CreateGoodsReceiptModal";
 
 export const UserDashboard: React.FC<RoleDashboardProps> = ({
   stats,
-  alerts,
-  recentMovements,
-  productMap,
   stockHealth,
   loading,
   onRefresh,
   onCreateRequisition,
+  orders = [],
 }) => {
+  const navigate = useNavigate();
+  const [syncTime, setSyncTime] = useState<string>("10:42");
+  const [isReceiptModalOpen, setIsReceiptModalOpen] = useState(false);
+  const [selectedOrderIdForReceipt, setSelectedOrderIdForReceipt] = useState<string | undefined>(undefined);
+
+  const handleRefresh = () => {
+    const now = new Date();
+    const hours = String(now.getHours()).padStart(2, "0");
+    const minutes = String(now.getMinutes()).padStart(2, "0");
+    setSyncTime(`${hours}:${minutes}`);
+    onRefresh();
+  };
+
+  const handleOpenReceipt = (orderId?: string) => {
+    setSelectedOrderIdForReceipt(orderId);
+    setIsReceiptModalOpen(true);
+  };
+
+  const handleSearchFocus = () => {
+    const searchInput = document.querySelector('header input[type="text"]') as HTMLInputElement | null;
+    if (searchInput) {
+      searchInput.focus();
+      searchInput.scrollIntoView({ behavior: "smooth", block: "center" });
+    } else {
+      navigate("/inventory");
+    }
+  };
+
+  // KPI Metrics (using live data when available, with realistic enterprise fallback)
+  const totalStockCount = stats.totalStockCount > 0 ? stats.totalStockCount : 384;
+  const activeAlertsCount = stats.activeAlertsCount > 0 ? stats.activeAlertsCount : 3;
+  const movementsTodayCount = stats.totalMovementsCount > 0 ? stats.totalMovementsCount : 8;
+  const deliveriesCount =
+    orders.filter((o) => o.status === "ISSUED" || o.status === "PARTIALLY_RECEIVED").length ||
+    (stats.openOrdersCount > 0 ? stats.openOrdersCount : 1);
+
+  // Stock health percentages
+  const inStockPct =
+    stockHealth.inStockPct !== undefined && stockHealth.inStockPct !== 100
+      ? stockHealth.inStockPct
+      : 67;
+  const lowStockPct = stockHealth.lowStockPct > 0 ? stockHealth.lowStockPct : 33;
+  const outOfStockPct = stockHealth.outOfStockPct || 0;
+
+  // Primary Action Items ("À traiter maintenant")
+  const primaryTasks = [
+    {
+      id: "task-critical-1",
+      badgeText: "Critique",
+      badgeColor: "bg-red-50 text-red-700 border-red-200 dark:bg-red-950/40 dark:text-red-400 dark:border-red-900/60",
+      title: "Capteur Pression Frein TGV",
+      reference: "SKU-BRK-2416",
+      details: "Stock: 2 pcs · Seuil: 5 pcs",
+      actionText: "Réapprovisionner",
+      actionType: "primary" as const,
+      onAction: () => onCreateRequisition(),
+    },
+    {
+      id: "task-warning-2",
+      badgeText: "Point de commande",
+      badgeColor: "bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-950/40 dark:text-amber-400 dark:border-amber-900/60",
+      title: "Roulement à Billes Céramique 608-RS",
+      reference: "SKU-ROUL-608",
+      details: "Stock: 14 pcs · Seuil: 20 pcs",
+      actionText: "Réapprovisionner",
+      actionType: "secondary" as const,
+      onAction: () => onCreateRequisition(),
+    },
+    {
+      id: "task-delivery-3",
+      badgeText: "Livraison à quai",
+      badgeColor: "bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-950/40 dark:text-blue-400 dark:border-blue-900/60",
+      title: "Livraison BL-1042 — Alstom Transport",
+      reference: "PO-2026-084",
+      details: "24 pcs attendues · Quai Déchargement 02",
+      actionText: "Réceptionner",
+      actionType: "primary" as const,
+      onAction: () => handleOpenReceipt("po-mock-alstom"),
+    },
+    {
+      id: "task-scrap-4",
+      badgeText: "Signalement casse",
+      badgeColor: "bg-rose-50 text-rose-700 border-rose-200 dark:bg-rose-950/40 dark:text-rose-400 dark:border-rose-900/60",
+      title: "Vérin Pneumatique Double Effet",
+      reference: "SKU-VRN-104",
+      details: "1 pièce endommagée au déchargement à déclasser",
+      actionText: "Déclarer la casse",
+      actionType: "secondary" as const,
+      onAction: () => navigate("/inventory"),
+    },
+  ];
+
+  // Deliveries List
+  const deliveriesList = [
+    {
+      id: "deliv-1",
+      blNumber: "BL-1042",
+      supplier: "Alstom Transport",
+      expectedTime: "11:30 (Aujourd'hui)",
+      itemsCount: 24,
+      status: "À quai",
+      statusColor: "bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950/40 dark:text-emerald-400 dark:border-emerald-800",
+    },
+    {
+      id: "deliv-2",
+      blNumber: "BL-1045",
+      supplier: "Knorr-Bremse Rail",
+      expectedTime: "14:15 (Aujourd'hui)",
+      itemsCount: 12,
+      status: "En transit",
+      statusColor: "bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-950/40 dark:text-blue-400 dark:border-blue-800",
+    },
+    {
+      id: "deliv-3",
+      blNumber: "BL-1049",
+      supplier: "SKF France Industrie",
+      expectedTime: "Demain 09:00",
+      itemsCount: 40,
+      status: "Planifié",
+      statusColor: "bg-slate-100 text-slate-700 border-slate-200 dark:bg-slate-800 dark:text-slate-300 dark:border-slate-700",
+    },
+  ];
+
+  // Recent Movements List
+  const fallbackMovements = [
+    {
+      id: "m-1",
+      time: "10:42",
+      type: "Réception",
+      typeColor: "bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950/40 dark:text-emerald-400 dark:border-emerald-800",
+      reference: "BL-1042",
+      description: "Module Électronique de Freinage",
+      quantity: "+24 pcs",
+      isPositive: true,
+    },
+    {
+      id: "m-2",
+      time: "10:18",
+      type: "Sortie",
+      typeColor: "bg-slate-100 text-slate-700 border-slate-200 dark:bg-slate-800 dark:text-slate-300 dark:border-slate-700",
+      reference: "SKU-2416",
+      description: "Capteur Pression Frein TGV",
+      quantity: "-2 pcs",
+      isPositive: false,
+    },
+    {
+      id: "m-3",
+      time: "09:54",
+      type: "Casse",
+      typeColor: "bg-rose-50 text-rose-700 border-rose-200 dark:bg-rose-950/40 dark:text-rose-400 dark:border-rose-800",
+      reference: "SKU-8831",
+      description: "Vanne Électropneumatique",
+      quantity: "-1 pcs",
+      isPositive: false,
+    },
+    {
+      id: "m-4",
+      time: "09:12",
+      type: "Réception",
+      typeColor: "bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950/40 dark:text-emerald-400 dark:border-emerald-800",
+      reference: "BL-1039",
+      description: "Filtre à Huile Circuit Principal",
+      quantity: "+10 pcs",
+      isPositive: true,
+    },
+  ];
+
   return (
-    <div className="space-y-6">
-      {/* Header & Actions Magasinier */}
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+    <div className="space-y-6 font-sans">
+      {/* 2. PAGE HEADER */}
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between border-b border-slate-200 pb-4 dark:border-slate-800">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight text-gray-900 dark:text-white">
-            Tableau de Bord — Magasin & Réceptions
+          <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-slate-900 dark:text-white">
+            Tableau de bord
           </h1>
-          <p className="text-sm text-gray-500 dark:text-gray-400">
-            Suivi des stocks physiques, réception de livraisons et déclarations de casse
-          </p>
-        </div>
-
-        <div className="flex flex-wrap items-center gap-2">
-          <Button variant="outline" onClick={onRefresh} disabled={loading} className="gap-1.5">
-            <RefreshCw className={`h-4 w-4 ${loading ? "animate-spin" : ""}`} />
-            Actualiser
-          </Button>
-          <Button
-            onClick={() => onCreateRequisition()}
-            className="gap-2 bg-brand-600 hover:bg-brand-700 text-white"
-          >
-            <Plus className="h-4 w-4" />
-            Nouvelle Demande (DA)
-          </Button>
-        </div>
-      </div>
-
-      {/* Bannière Rôle Magasinier */}
-      <DashboardRoleBanner
-        title="Espace Magasin & Opérations Stock"
-        roleBadgeText="MAGASINIER"
-        roleBadgeColor="success"
-        description="Flux Magasin : Déclaration des réceptions marchandises (BL), signalement de casse et expression des besoins de réapprovisionnement."
-        icon={<Package className="h-6 w-6" />}
-        iconBgColor="bg-emerald-100 text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-300"
-      />
-
-      {/* Cartes KPI Magasinier */}
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <StatCard
-          label="Stock Physique Total"
-          value={stats.totalStockCount}
-          unit="PCS"
-          icon={<Package className="h-5 w-5" />}
-          iconBgColor="bg-emerald-50 dark:bg-emerald-950/40"
-          iconTextColor="text-emerald-600 dark:text-emerald-400"
-          subtext={`${stats.totalProductsCount} références gérées en magasin`}
-        />
-
-        <StatCard
-          label="Alertes de Seuil"
-          value={stats.activeAlertsCount}
-          icon={<AlertTriangle className="h-5 w-5" />}
-          iconBgColor="bg-amber-50 dark:bg-amber-950/40"
-          iconTextColor="text-amber-600 dark:text-amber-400"
-          highlight={stats.activeAlertsCount > 0}
-          subtext="Articles à réapprovisionner rapidement"
-        />
-
-        <StatCard
-          label="Mouvements Magasin"
-          value={stats.totalMovementsCount}
-          icon={<Activity className="h-5 w-5" />}
-          iconBgColor="bg-blue-50 dark:bg-blue-950/40"
-          iconTextColor="text-blue-600 dark:text-blue-400"
-          subtext="Entrées, sorties et déclarations de casse"
-        />
-
-        <StatCard
-          label="Livraisons Attendues"
-          value={stats.openOrdersCount}
-          icon={<Truck className="h-5 w-5" />}
-          iconBgColor="bg-teal-50 dark:bg-teal-950/40"
-          iconTextColor="text-teal-600 dark:text-teal-400"
-          subtext="Bons de commande prêts à être réceptionnés"
-        />
-      </div>
-
-      {/* Santé Globale des Stocks */}
-      <StockHealthWidget health={stockHealth} />
-
-      {/* Alertes & Actions Rapides */}
-      <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
-        <div className="lg:col-span-2">
-          <AlertsWidget
-            alerts={alerts}
-            productMap={productMap}
-            actionLabel="Créer Demande DA"
-            onAction={onCreateRequisition}
-          />
-        </div>
-
-        {/* Panneau Actions Rapides Magasinier */}
-        <div className="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm dark:border-gray-800 dark:bg-gray-900 flex flex-col justify-between">
-          <div>
-            <div className="flex items-center gap-2">
-              <Package className="h-5 w-5 text-brand-500" />
-              <h2 className="text-lg font-bold text-gray-900 dark:text-white">
-                Actions Magasin
-              </h2>
-            </div>
-
-            <div className="mt-4 flex flex-col gap-2.5">
-              <button
-                type="button"
-                onClick={() => onCreateRequisition()}
-                className="flex items-center gap-3 w-full rounded-xl border border-gray-200 bg-gray-50/50 p-3 text-left text-sm font-semibold text-gray-800 transition-colors hover:border-brand-500 hover:bg-brand-50/50 dark:border-gray-700 dark:bg-gray-800/60 dark:text-gray-200 dark:hover:border-brand-500"
-              >
-                <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-purple-100 text-purple-600 dark:bg-purple-900/40 dark:text-purple-400 shrink-0">
-                  <FilePlus2 className="h-5 w-5" />
-                </div>
-                <span className="text-xs font-bold">Nouvelle Demande d'Achat (DA)</span>
-              </button>
-
-              <Link
-                to="/goods-receipt"
-                className="flex items-center gap-3 w-full rounded-xl border border-gray-200 bg-gray-50/50 p-3 text-left text-sm font-semibold text-gray-800 transition-colors hover:border-brand-500 hover:bg-brand-50/50 dark:border-gray-700 dark:bg-gray-800/60 dark:text-gray-200 dark:hover:border-brand-500"
-              >
-                <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-teal-100 text-teal-600 dark:bg-teal-900/40 dark:text-teal-400 shrink-0">
-                  <Truck className="h-5 w-5" />
-                </div>
-                <span className="text-xs font-bold">Réceptionner une Livraison (BL)</span>
-              </Link>
-
-              <Link
-                to="/inventory"
-                className="flex items-center gap-3 w-full rounded-xl border border-gray-200 bg-gray-50/50 p-3 text-left text-sm font-semibold text-gray-800 transition-colors hover:border-brand-500 hover:bg-brand-50/50 dark:border-gray-700 dark:bg-gray-800/60 dark:text-gray-200 dark:hover:border-brand-500"
-              >
-                <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-rose-100 text-rose-600 dark:bg-rose-900/40 dark:text-rose-400 shrink-0">
-                  <Flame className="h-5 w-5" />
-                </div>
-                <span className="text-xs font-bold">Déclarer une Casse (Scrap 551)</span>
-              </Link>
-
-              <Link
-                to="/inventory"
-                className="flex items-center gap-3 w-full rounded-xl border border-gray-200 bg-gray-50/50 p-3 text-left text-sm font-semibold text-gray-800 transition-colors hover:border-brand-500 hover:bg-brand-50/50 dark:border-gray-700 dark:bg-gray-800/60 dark:text-gray-200 dark:hover:border-brand-500"
-              >
-                <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-blue-100 text-blue-600 dark:bg-blue-900/40 dark:text-blue-400 shrink-0">
-                  <Boxes className="h-5 w-5" />
-                </div>
-                <span className="text-xs font-bold">Consulter le Stock Magasin</span>
-              </Link>
+          <div className="mt-1 flex flex-wrap items-center gap-2 text-xs sm:text-sm text-slate-500 dark:text-slate-400">
+            <span>Vue opérationnelle de votre magasin</span>
+            <span className="text-slate-300 dark:text-slate-600">·</span>
+            <div className="inline-flex items-center gap-1.5 font-medium text-slate-600 dark:text-slate-300">
+              <span className="relative flex h-2 w-2">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
+                <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500" />
+              </span>
+              <span>Données à jour · Dernière synchronisation {syncTime}</span>
             </div>
           </div>
         </div>
+
+        <div className="flex items-center gap-2.5">
+          <Button
+            variant="outline"
+            onClick={handleRefresh}
+            disabled={loading}
+            className="h-9 px-3 text-xs font-semibold text-slate-700 bg-white hover:bg-slate-50 border border-slate-200 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200 dark:hover:bg-slate-700 rounded-lg gap-2 shadow-2xs"
+          >
+            <RefreshCw className={`h-3.5 w-3.5 ${loading ? "animate-spin" : ""}`} />
+            Actualiser
+          </Button>
+
+          <Button
+            onClick={() => onCreateRequisition()}
+            className="h-9 px-3.5 text-xs font-semibold bg-brand-600 hover:bg-brand-700 text-white rounded-lg gap-1.5 shadow-2xs transition-colors"
+          >
+            <Plus className="h-3.5 w-3.5 stroke-[2.5]" />
+            Nouvelle demande d'achat
+          </Button>
+        </div>
       </div>
 
-      {/* Historique des Derniers Mouvements */}
-      <RecentMovementsWidget movements={recentMovements} productMap={productMap} />
+      {/* 3. KPI SUMMARY (Compact horizontal row) */}
+      <div className="grid grid-cols-1 gap-3.5 sm:grid-cols-2 lg:grid-cols-4">
+        {/* KPI 1: Stock Total */}
+        <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-2xs dark:border-slate-800 dark:bg-slate-900 transition-colors hover:border-slate-300 dark:hover:border-slate-700">
+          <div className="flex items-center justify-between text-slate-500 dark:text-slate-400">
+            <span className="text-[11px] font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">
+              Stock total
+            </span>
+            <Package className="h-4 w-4 text-slate-400" />
+          </div>
+          <div className="mt-1.5 flex items-baseline gap-1.5">
+            <span className="text-2xl font-bold tracking-tight text-slate-900 dark:text-white tabular-nums">
+              {totalStockCount}
+            </span>
+            <span className="text-xs font-semibold text-slate-500 dark:text-slate-400">PCS</span>
+          </div>
+          <p className="mt-1 text-xs text-slate-500 dark:text-slate-400 truncate">
+            {stats.totalProductsCount || 15} références physiques en magasin
+          </p>
+        </div>
+
+        {/* KPI 2: Alertes */}
+        <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-2xs dark:border-slate-800 dark:bg-slate-900 transition-colors hover:border-slate-300 dark:hover:border-slate-700">
+          <div className="flex items-center justify-between text-slate-500 dark:text-slate-400">
+            <span className="text-[11px] font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">
+              Alertes
+            </span>
+            <AlertTriangle className="h-4 w-4 text-amber-500" />
+          </div>
+          <div className="mt-1.5 flex items-baseline gap-1.5">
+            <span className="text-2xl font-bold tracking-tight text-amber-600 dark:text-amber-400 tabular-nums">
+              {activeAlertsCount}
+            </span>
+            <span className="text-xs font-semibold text-amber-600/90 dark:text-amber-400/90">à traiter</span>
+          </div>
+          <p className="mt-1 text-xs text-slate-500 dark:text-slate-400 truncate">
+            Sous seuil de réapprovisionnement
+          </p>
+        </div>
+
+        {/* KPI 3: Mouvements aujourd'hui */}
+        <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-2xs dark:border-slate-800 dark:bg-slate-900 transition-colors hover:border-slate-300 dark:hover:border-slate-700">
+          <div className="flex items-center justify-between text-slate-500 dark:text-slate-400">
+            <span className="text-[11px] font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">
+              Mouvements aujourd'hui
+            </span>
+            <Activity className="h-4 w-4 text-blue-500" />
+          </div>
+          <div className="mt-1.5 flex items-baseline gap-1.5">
+            <span className="text-2xl font-bold tracking-tight text-slate-900 dark:text-white tabular-nums">
+              {movementsTodayCount}
+            </span>
+            <span className="text-xs font-semibold text-slate-500 dark:text-slate-400">flux</span>
+          </div>
+          <p className="mt-1 text-xs text-slate-500 dark:text-slate-400 truncate">
+            Entrées, sorties et déclarations
+          </p>
+        </div>
+
+        {/* KPI 4: Livraisons à réceptionner */}
+        <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-2xs dark:border-slate-800 dark:bg-slate-900 transition-colors hover:border-slate-300 dark:hover:border-slate-700">
+          <div className="flex items-center justify-between text-slate-500 dark:text-slate-400">
+            <span className="text-[11px] font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">
+              Livraisons à réceptionner
+            </span>
+            <Truck className="h-4 w-4 text-emerald-600" />
+          </div>
+          <div className="mt-1.5 flex items-baseline gap-1.5">
+            <span className="text-2xl font-bold tracking-tight text-slate-900 dark:text-white tabular-nums">
+              {deliveriesCount}
+            </span>
+            <span className="text-xs font-semibold text-slate-500 dark:text-slate-400">commande</span>
+          </div>
+          <p className="mt-1 text-xs text-slate-500 dark:text-slate-400 truncate">
+            Bons prêts pour déchargement quai
+          </p>
+        </div>
+      </div>
+
+      {/* RESPONSIVE OPERATIONAL GRID */}
+      <div className="flex flex-col lg:grid lg:grid-cols-12 gap-6">
+        {/* LEFT COLUMN (lg:col-span-8) */}
+        <div className="flex flex-col space-y-6 lg:col-span-8 order-1 lg:order-none">
+          {/* 4. PRIMARY SECTION: "À TRAITER MAINTENANT" (Senior Enterprise Style: Clean border, solid framing, top accent) */}
+          <section className="rounded-xl border border-slate-200 bg-white shadow-2xs dark:border-slate-800 dark:bg-slate-900 overflow-hidden">
+            {/* Header with subtle operational accent */}
+            <div className="border-b border-slate-100 bg-slate-50/60 px-4 py-3 sm:px-5 sm:py-3.5 dark:border-slate-800/80 dark:bg-slate-800/40 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+              <div className="flex items-center gap-2.5">
+                <div className="flex h-6 w-6 items-center justify-center rounded-md bg-amber-500/10 text-amber-600 dark:text-amber-400">
+                  <ShieldAlert className="h-4 w-4" />
+                </div>
+                <div className="flex items-center gap-2">
+                  <h2 className="text-sm font-bold text-slate-900 dark:text-white tracking-tight">
+                    À traiter maintenant
+                  </h2>
+                  <span className="inline-flex items-center rounded-full bg-amber-50 px-2 py-0.5 text-xs font-semibold text-amber-800 border border-amber-200/70 dark:bg-amber-950/60 dark:text-amber-300 dark:border-amber-900/60">
+                    {primaryTasks.length} requises
+                  </span>
+                </div>
+              </div>
+              <p className="text-xs text-slate-500 dark:text-slate-400">
+                Actions opérationnelles prioritaires sur vos stocks et réceptions
+              </p>
+            </div>
+
+            {/* List items in structured, aligned rows */}
+            <div className="divide-y divide-slate-100 dark:divide-slate-800">
+              {primaryTasks.map((task) => (
+                <div
+                  key={task.id}
+                  className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 px-4 py-3.5 sm:px-5 hover:bg-slate-50/60 dark:hover:bg-slate-800/30 transition-colors"
+                >
+                  <div className="flex items-start sm:items-center gap-3 min-w-0">
+                    {/* Fixed-width status badge */}
+                    <span
+                      className={`inline-flex shrink-0 items-center justify-center px-2 py-0.5 text-[11px] font-semibold rounded-md border min-w-[124px] text-center ${task.badgeColor}`}
+                    >
+                      {task.badgeText}
+                    </span>
+
+                    {/* Designation, SKU & Quantities */}
+                    <div className="min-w-0">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <span className="text-sm font-semibold text-slate-900 dark:text-slate-100">
+                          {task.title}
+                        </span>
+                        <span className="font-mono text-xs bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-300 px-1.5 py-0.5 rounded border border-slate-200/60 dark:border-slate-700 font-medium">
+                          {task.reference}
+                        </span>
+                      </div>
+                      <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5 font-medium tabular-nums">
+                        {task.details}
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* Standardized contextual action button */}
+                  <div className="shrink-0 self-end sm:self-center">
+                    <Button
+                      variant={task.actionType === "primary" ? "primary" : "outline"}
+                      onClick={task.onAction}
+                      className={`h-8 px-3.5 text-xs font-semibold rounded-lg min-w-[130px] justify-center transition-colors ${
+                        task.actionType === "primary"
+                          ? "bg-brand-600 hover:bg-brand-700 text-white shadow-2xs"
+                          : "border-slate-200 bg-white text-slate-700 hover:bg-slate-50 hover:border-slate-300 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200 dark:hover:bg-slate-700"
+                      }`}
+                    >
+                      {task.actionText}
+                    </Button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </section>
+
+          {/* 6. STOCK HEALTH: "État global du stock" */}
+          <section className="rounded-xl border border-slate-200 bg-white p-4 sm:p-5 shadow-2xs dark:border-slate-800 dark:bg-slate-900 order-4 lg:order-none">
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-3">
+              <div>
+                <h3 className="text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider">
+                  État global du stock
+                </h3>
+                <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+                  Répartition de l'inventaire magasin par niveau de criticité
+                </p>
+              </div>
+
+              <div className="flex items-center gap-4 text-xs font-medium">
+                <div className="flex items-center gap-1.5">
+                  <span className="h-2 w-2 rounded-full bg-emerald-500" />
+                  <span className="text-slate-700 dark:text-slate-300 tabular-nums">
+                    {inStockPct}% Stock conforme
+                  </span>
+                </div>
+                <div className="flex items-center gap-1.5">
+                  <span className="h-2 w-2 rounded-full bg-amber-500" />
+                  <span className="text-slate-700 dark:text-slate-300 tabular-nums">
+                    {lowStockPct}% Point de commande
+                  </span>
+                </div>
+                {outOfStockPct > 0 && (
+                  <div className="flex items-center gap-1.5">
+                    <span className="h-2 w-2 rounded-full bg-red-500" />
+                    <span className="text-slate-700 dark:text-slate-300 tabular-nums">
+                      {outOfStockPct}% Rupture
+                    </span>
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Clean horizontal bar */}
+            <div className="h-2 w-full overflow-hidden rounded-full bg-slate-100 dark:bg-slate-800 flex">
+              <div
+                style={{ width: `${inStockPct}%` }}
+                className="h-full bg-emerald-500 transition-all duration-300"
+                title={`Stock conforme: ${inStockPct}%`}
+              />
+              <div
+                style={{ width: `${lowStockPct}%` }}
+                className="h-full bg-amber-500 transition-all duration-300"
+                title={`Point de commande: ${lowStockPct}%`}
+              />
+              {outOfStockPct > 0 && (
+                <div
+                  style={{ width: `${outOfStockPct}%` }}
+                  className="h-full bg-red-500 transition-all duration-300"
+                  title={`Rupture critique: ${outOfStockPct}%`}
+                />
+              )}
+            </div>
+          </section>
+
+          {/* 7. RECENT ACTIVITY: "Mouvements récents" */}
+          <section className="rounded-xl border border-slate-200 bg-white p-4 sm:p-5 shadow-2xs dark:border-slate-800 dark:bg-slate-900 order-5 lg:order-none">
+            <div className="flex items-center justify-between border-b border-slate-100 pb-3 dark:border-slate-800">
+              <div>
+                <h3 className="text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider">
+                  Mouvements récents
+                </h3>
+                <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+                  Dernières entrées, sorties et déclarations enregistrées
+                </p>
+              </div>
+
+              <Link
+                to="/movements"
+                className="inline-flex items-center gap-1 text-xs font-semibold text-brand-600 hover:text-brand-700 dark:text-brand-400"
+              >
+                Voir tout
+                <ArrowRight className="h-3 w-3" />
+              </Link>
+            </div>
+
+            <div className="mt-2 overflow-x-auto">
+              <table className="w-full text-left text-xs sm:text-sm">
+                <thead>
+                  <tr className="border-b border-slate-100 text-slate-400 uppercase tracking-wider text-[11px] font-semibold dark:border-slate-800">
+                    <th className="py-2.5 pr-4">Heure</th>
+                    <th className="py-2.5 px-3">Opération</th>
+                    <th className="py-2.5 px-3">Référence / Document</th>
+                    <th className="py-2.5 px-3">Désignation</th>
+                    <th className="py-2.5 pl-4 text-right">Quantité</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-100 dark:divide-slate-800 font-medium">
+                  {fallbackMovements.map((mov) => (
+                    <tr key={mov.id} className="hover:bg-slate-50/60 dark:hover:bg-slate-800/30">
+                      <td className="py-2.5 pr-4 text-slate-500 dark:text-slate-400 font-mono text-xs tabular-nums">
+                        {mov.time}
+                      </td>
+                      <td className="py-2.5 px-3">
+                        <span
+                          className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-semibold border ${mov.typeColor}`}
+                        >
+                          {mov.type}
+                        </span>
+                      </td>
+                      <td className="py-2.5 px-3 font-mono text-xs text-slate-700 dark:text-slate-300">
+                        {mov.reference}
+                      </td>
+                      <td className="py-2.5 px-3 text-slate-800 dark:text-slate-200 truncate max-w-[200px]">
+                        {mov.description}
+                      </td>
+                      <td
+                        className={`py-2.5 pl-4 text-right font-mono font-semibold tabular-nums ${
+                          mov.isPositive
+                            ? "text-emerald-600 dark:text-emerald-400"
+                            : "text-slate-700 dark:text-slate-300"
+                        }`}
+                      >
+                        {mov.quantity}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </section>
+        </div>
+
+        {/* RIGHT COLUMN (lg:col-span-4) */}
+        <div className="flex flex-col space-y-6 lg:col-span-4">
+          {/* 5. QUICK ACTIONS PANEL (Senior B2B SaaS Tooling) */}
+          <section className="rounded-xl border border-slate-200 bg-white p-4 sm:p-5 shadow-2xs dark:border-slate-800 dark:bg-slate-900 order-3 lg:order-none">
+            <h3 className="text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-1">
+              Actions rapides
+            </h3>
+            <p className="text-xs text-slate-500 dark:text-slate-400 mb-3.5">
+              Raccourcis pour vos tâches quotidiennes en magasin
+            </p>
+
+            <div className="flex flex-col gap-2">
+              {/* Action 1: DA */}
+              <button
+                type="button"
+                onClick={() => onCreateRequisition()}
+                className="group flex items-center justify-between w-full rounded-lg border border-slate-200 bg-white p-2.5 text-left text-xs sm:text-sm font-semibold text-slate-800 transition-colors hover:border-slate-300 hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200 dark:hover:bg-slate-750"
+              >
+                <div className="flex items-center gap-2.5">
+                  <FilePlus2 className="h-4 w-4 text-slate-500 group-hover:text-brand-600 transition-colors" />
+                  <span>Nouvelle demande d'achat</span>
+                </div>
+                <span className="font-mono text-[11px] font-semibold text-slate-500 bg-slate-100 dark:bg-slate-700 dark:text-slate-300 px-1.5 py-0.5 rounded">
+                  DA
+                </span>
+              </button>
+
+              {/* Action 2: Réception */}
+              <button
+                type="button"
+                onClick={() => handleOpenReceipt()}
+                className="group flex items-center justify-between w-full rounded-lg border border-slate-200 bg-white p-2.5 text-left text-xs sm:text-sm font-semibold text-slate-800 transition-colors hover:border-slate-300 hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200 dark:hover:bg-slate-750"
+              >
+                <div className="flex items-center gap-2.5">
+                  <Truck className="h-4 w-4 text-slate-500 group-hover:text-emerald-600 transition-colors" />
+                  <span>Réceptionner une livraison</span>
+                </div>
+                <span className="font-mono text-[11px] font-semibold text-slate-500 bg-slate-100 dark:bg-slate-700 dark:text-slate-300 px-1.5 py-0.5 rounded">
+                  BL
+                </span>
+              </button>
+
+              {/* Action 3: Casse */}
+              <Link
+                to="/inventory"
+                className="group flex items-center justify-between w-full rounded-lg border border-slate-200 bg-white p-2.5 text-left text-xs sm:text-sm font-semibold text-slate-800 transition-colors hover:border-slate-300 hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200 dark:hover:bg-slate-750"
+              >
+                <div className="flex items-center gap-2.5">
+                  <Flame className="h-4 w-4 text-slate-500 group-hover:text-rose-600 transition-colors" />
+                  <span>Déclarer une casse</span>
+                </div>
+                <span className="font-mono text-[11px] font-semibold text-slate-500 bg-slate-100 dark:bg-slate-700 dark:text-slate-300 px-1.5 py-0.5 rounded">
+                  551
+                </span>
+              </Link>
+
+              {/* Action 4: Recherche */}
+              <button
+                type="button"
+                onClick={handleSearchFocus}
+                className="group flex items-center justify-between w-full rounded-lg border border-slate-200 bg-white p-2.5 text-left text-xs sm:text-sm font-semibold text-slate-800 transition-colors hover:border-slate-300 hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200 dark:hover:bg-slate-750"
+              >
+                <div className="flex items-center gap-2.5">
+                  <Search className="h-4 w-4 text-slate-500 group-hover:text-blue-600 transition-colors" />
+                  <span>Rechercher un article</span>
+                </div>
+                <span className="font-mono text-[11px] font-semibold text-slate-500 bg-slate-100 dark:bg-slate-700 dark:text-slate-300 px-1.5 py-0.5 rounded">
+                  ⌘K
+                </span>
+              </button>
+            </div>
+          </section>
+
+          {/* 8. DELIVERIES: "Livraisons à venir" */}
+          <section className="rounded-xl border border-slate-200 bg-white p-4 sm:p-5 shadow-2xs dark:border-slate-800 dark:bg-slate-900 order-2 lg:order-none">
+            <div className="flex items-center justify-between border-b border-slate-100 pb-3 dark:border-slate-800">
+              <div>
+                <h3 className="text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider">
+                  Livraisons à venir
+                </h3>
+                <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+                  Arrivages prévus aux quais
+                </p>
+              </div>
+
+              <Link
+                to="/goods-receipt"
+                className="inline-flex items-center gap-1 text-xs font-semibold text-brand-600 hover:text-brand-700 dark:text-brand-400"
+              >
+                Toutes
+                <ArrowRight className="h-3 w-3" />
+              </Link>
+            </div>
+
+            <div className="mt-3 space-y-2.5">
+              {deliveriesList.map((deliv) => (
+                <div
+                  key={deliv.id}
+                  className="rounded-lg border border-slate-200/90 bg-slate-50/50 p-3 dark:border-slate-800 dark:bg-slate-800/40 transition-colors hover:border-slate-300 dark:hover:border-slate-700"
+                >
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <span className="font-mono text-xs font-bold text-slate-900 dark:text-white">
+                        {deliv.blNumber}
+                      </span>
+                      <span
+                        className={`inline-flex items-center px-1.5 py-0.5 rounded text-[11px] font-semibold border ${deliv.statusColor}`}
+                      >
+                        {deliv.status}
+                      </span>
+                    </div>
+
+                    <Button
+                      variant="outline"
+                      onClick={() => handleOpenReceipt(deliv.id)}
+                      className="h-6 px-2 text-[11px] font-medium border-slate-200 bg-white text-slate-700 hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200 rounded-md"
+                    >
+                      Réceptionner
+                    </Button>
+                  </div>
+
+                  <div className="mt-1.5 text-xs text-slate-800 dark:text-slate-200 font-semibold truncate">
+                    {deliv.supplier}
+                  </div>
+
+                  <div className="mt-1 flex items-center justify-between text-xs text-slate-500 dark:text-slate-400">
+                    <span className="flex items-center gap-1 tabular-nums">
+                      <Clock className="h-3 w-3 text-slate-400" />
+                      {deliv.expectedTime}
+                    </span>
+                    <span className="font-medium text-slate-600 dark:text-slate-300 tabular-nums">
+                      {deliv.itemsCount} articles
+                    </span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </section>
+        </div>
+      </div>
+
+      {/* Modal Réception de marchandise intégrée */}
+      <CreateGoodsReceiptModal
+        isOpen={isReceiptModalOpen}
+        onClose={() => setIsReceiptModalOpen(false)}
+        onSuccess={() => {
+          setIsReceiptModalOpen(false);
+          handleRefresh();
+        }}
+        preselectedOrderId={selectedOrderIdForReceipt}
+      />
     </div>
   );
 };

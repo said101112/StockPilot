@@ -8,6 +8,9 @@ import { productsApi } from "@/features/products/api/productsApi";
 import type { StockAlert } from "@/features/alerts/domain/types";
 import type { StockMovement } from "@/features/movements/domain/types";
 import type { Product } from "@/features/products/domain/types";
+import type { PurchaseOrder } from "@/features/procurement/domain/types";
+import type { Supplier } from "@/features/suppliers/domain/types";
+import type { InventoryItem } from "@/features/inventory/domain/types";
 import CreateSupplierModal from "@/features/suppliers/components/CreateSupplierModal";
 import CreateProductModal from "@/features/products/components/CreateProductModal";
 import CreateRequisitionModal from "@/features/procurement/components/CreateRequisitionModal";
@@ -35,6 +38,9 @@ export default function DashboardPage() {
   const [alerts, setAlerts] = useState<StockAlert[]>([]);
   const [recentMovements, setRecentMovements] = useState<StockMovement[]>([]);
   const [productMap, setProductMap] = useState<Record<string, Product>>({});
+  const [orders, setOrders] = useState<PurchaseOrder[]>([]);
+  const [suppliers, setSuppliers] = useState<Supplier[]>([]);
+  const [inventoryItems, setInventoryItems] = useState<InventoryItem[]>([]);
   const [stockHealth, setStockHealth] = useState<StockHealth>({
     inStockPct: 100,
     lowStockPct: 0,
@@ -129,6 +135,9 @@ export default function DashboardPage() {
 
       setAlerts(sortedAlerts.slice(0, 5));
       setRecentMovements(sortedMovements.slice(0, 6));
+      setOrders(poList || []);
+      setSuppliers(suppList || []);
+      setInventoryItems(invList || []);
     } finally {
       setLoading(false);
     }
@@ -152,6 +161,9 @@ export default function DashboardPage() {
     loading,
     onRefresh: loadDashboardData,
     onCreateRequisition: handleOpenRequisition,
+    orders,
+    suppliers,
+    inventoryItems,
   };
 
   return (

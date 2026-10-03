@@ -1,6 +1,9 @@
 import type { StockAlert } from "@/features/alerts/domain/types";
 import type { StockMovement } from "@/features/movements/domain/types";
 import type { Product } from "@/features/products/domain/types";
+import type { PurchaseOrder } from "@/features/procurement/domain/types";
+import type { Supplier } from "@/features/suppliers/domain/types";
+import type { InventoryItem } from "@/features/inventory/domain/types";
 
 export interface DashboardStats {
   totalStockCount: number;
@@ -31,4 +34,7 @@ export interface RoleDashboardProps {
   onCreateRequisition: (productId?: string) => void;
   onCreateSupplier?: () => void;
   onCreateProduct?: () => void;
+  orders?: PurchaseOrder[];
+  suppliers?: Supplier[];
+  inventoryItems?: InventoryItem[];
 }

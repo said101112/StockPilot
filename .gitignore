@@ -54,4 +54,5 @@ docs/
 
 # Local startup scripts
 start.bat
+stop.bat
 start.sh
