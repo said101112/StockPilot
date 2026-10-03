@@ -38,8 +38,11 @@ export default function SignUpPage() {
     <div className="relative flex flex-col items-center justify-center min-h-screen p-6 bg-white z-1 dark:bg-gray-900 sm:p-0">
       <div className="relative flex flex-col justify-center w-full h-full max-w-md p-6 mx-auto bg-white rounded-2xl shadow-lg dark:bg-gray-900 sm:p-8">
         <div className="mb-5 sm:mb-8">
-          <Link to="/" className="inline-flex items-center gap-2 text-sm mb-4">
-            <StockPilotLogo size="md" />
+          <Link to="/" className="inline-flex items-center gap-2.5 mb-6 group">
+            <StockPilotLogo size="lg" />
+            <span className="text-2xl font-bold tracking-tight text-gray-900 dark:text-white group-hover:text-brand-500 transition-colors">
+              Stock<span className="text-brand-500">Pilot</span>
+            </span>
           </Link>
           <h1 className="mb-2 font-semibold text-gray-800 text-title-sm dark:text-white/90 sm:text-title-md">
             Sign Up
