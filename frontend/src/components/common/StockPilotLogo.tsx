@@ -26,100 +26,96 @@ export const StockPilotLogo: React.FC<LogoProps> = ({
         xmlns="http://www.w3.org/2000/svg"
       >
         <defs>
-          {/* Fond Squircle Sombre & Luxueux */}
-          <linearGradient id="sp-bg-gradient" x1="0%" y1="0%" x2="100%" y2="100%">
-            <stop offset="0%" stopColor="#0f172a" />
-            <stop offset="100%" stopColor="#021324" />
-          </linearGradient>
-
-          {/* Facette Stock : Gauche (Cyan Vibrant) */}
-          <linearGradient id="sp-face-left" x1="0%" y1="0%" x2="100%" y2="100%">
+          {/* Fond dégradé bleu StockPilot */}
+          <linearGradient id="sp-box-bg" x1="0%" y1="0%" x2="100%" y2="100%">
             <stop offset="0%" stopColor="#0284c7" />
             <stop offset="100%" stopColor="#0369a1" />
           </linearGradient>
 
-          {/* Facette Stock : Droite (Bleu Profond) */}
-          <linearGradient id="sp-face-right" x1="0%" y1="0%" x2="100%" y2="100%">
-            <stop offset="0%" stopColor="#075985" />
-            <stop offset="100%" stopColor="#0c4a6e" />
+          {/* Face dessus du carton */}
+          <linearGradient id="sp-box-top" x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" stopColor="#ffffff" />
+            <stop offset="100%" stopColor="#f0f9ff" />
           </linearGradient>
 
-          {/* Facette Stock : Haut (Navy Industriel) */}
-          <linearGradient id="sp-face-top" x1="0%" y1="0%" x2="100%" y2="100%">
-            <stop offset="0%" stopColor="#1e293b" />
-            <stop offset="100%" stopColor="#0f172a" />
+          {/* Face gauche (ombre) */}
+          <linearGradient id="sp-box-left" x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" stopColor="#e0f2fe" />
+            <stop offset="100%" stopColor="#bae6fd" />
           </linearGradient>
 
-          {/* Flèche Pilot : Gradient Lumineux Haute Télémétrie */}
-          <linearGradient id="sp-arrow-grad" x1="0%" y1="100%" x2="100%" y2="0%">
-            <stop offset="0%" stopColor="#0284c7" />
-            <stop offset="50%" stopColor="#38bdf8" />
-            <stop offset="100%" stopColor="#ffffff" />
+          {/* Face droite */}
+          <linearGradient id="sp-box-right" x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" stopColor="#f8fafc" />
+            <stop offset="100%" stopColor="#e2e8f0" />
           </linearGradient>
 
-          <filter id="sp-glow" x="-20%" y="-20%" width="140%" height="140%">
-            <feDropShadow dx="0" dy="1" stdDeviation="1.5" floodColor="#38bdf8" floodOpacity="0.4" />
-          </filter>
+          {/* Bande adhésive (Tape) */}
+          <linearGradient id="sp-box-tape" x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" stopColor="#0ea5e9" />
+            <stop offset="100%" stopColor="#0284c7" />
+          </linearGradient>
         </defs>
 
-        {/* 1. Cadre Squircle B2B Enterprise */}
-        <rect width="40" height="40" rx="10" fill="url(#sp-bg-gradient)" />
+        {/* 1. Conteneur d'application Squircle */}
+        <rect width="40" height="40" rx="9" fill="url(#sp-box-bg)" />
         <rect
           x="0.75"
           y="0.75"
           width="38.5"
           height="38.5"
-          rx="9.25"
-          stroke="rgba(56, 189, 248, 0.2)"
+          rx="8.25"
+          stroke="rgba(255,255,255,0.25)"
           strokeWidth="1.2"
         />
 
-        {/* 2. Le Cube Isométrique (STOCK / Warehouse Container) */}
-        {/* Face Supérieure (Toit du cube) */}
+        {/* 2. LE CARTON / COLIS DE STOCK (Immédiatement compréhensible) */}
+        {/* Face supérieure du carton */}
         <path
-          d="M20 8.5L30.5 14.5L20 20.5L9.5 14.5Z"
-          fill="url(#sp-face-top)"
-          stroke="rgba(56, 189, 248, 0.3)"
-          strokeWidth="0.75"
+          d="M20 9L31 15L20 21L9 15L20 9Z"
+          fill="url(#sp-box-top)"
         />
 
-        {/* Face Gauche (Rayonnage physique) */}
+        {/* Ruban adhésif bleu sur le dessus (Scellé de colis) */}
         <path
-          d="M9.5 14.5L20 20.5V32.5L9.5 26.5Z"
-          fill="url(#sp-face-left)"
+          d="M17 10.6L23 13.9L20 15.6L14 12.3L17 10.6Z"
+          fill="url(#sp-box-tape)"
         />
 
-        {/* Face Droite (Flux d'expédition) */}
+        {/* Face latérale gauche du carton */}
         <path
-          d="M20 20.5L30.5 14.5V26.5L20 32.5Z"
-          fill="url(#sp-face-right)"
+          d="M9 15L20 21V32L9 26V15Z"
+          fill="url(#sp-box-left)"
         />
 
-        {/* Découpe de précision du conteneur */}
+        {/* Rabat du ruban adhésif sur le côté gauche */}
         <path
-          d="M20 20.5V32.5"
-          stroke="#0f172a"
-          strokeWidth="1"
-          strokeOpacity="0.5"
+          d="M14 17.7L20 21V24L14 20.7V17.7Z"
+          fill="url(#sp-box-tape)"
         />
 
-        {/* 3. La Flèche Aérodynamique Traversante (PILOT / Navigation Vector) */}
-        {/* Faisceau / Corps de la flèche s'élevant à travers le cube */}
+        {/* Face latérale droite du carton */}
         <path
-          d="M13.5 24.5L22 15.5L24 17.5L15.5 26.5Z"
-          fill="#38bdf8"
-          opacity="0.9"
+          d="M20 21L31 15V26L20 32V21Z"
+          fill="url(#sp-box-right)"
         />
 
-        {/* Tête de Flèche Traversante en diagonale ascendante */}
+        {/* 3. FLÈCHE DE PILOTAGE / EXPÉDITION (PILOT) sur la face droite */}
+        {/* Ligne diagonale ascendante de flux */}
         <path
-          d="M20 11L28.5 12L27.5 20.5L24 17.5L19 22L17.5 20.5L22.5 15.5L20 11Z"
-          fill="url(#sp-arrow-grad)"
-          filter="url(#sp-glow)"
+          d="M24 28L28.5 20.5"
+          stroke="#0284c7"
+          strokeWidth="2"
+          strokeLinecap="round"
         />
-
-        {/* Point de mire télémétrique au sommet */}
-        <circle cx="28.5" cy="12" r="1.5" fill="#ffffff" />
+        {/* Pointe de la flèche de navigation */}
+        <path
+          d="M25 20.5H28.5V24"
+          stroke="#0284c7"
+          strokeWidth="2"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        />
       </svg>
     </div>
   );
