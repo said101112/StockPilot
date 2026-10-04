@@ -25,6 +25,11 @@ public class UserPersistenceAdapter implements UserRepository {
     }
 
     @Override
+    public java.util.List<User> findAll() {
+        return repo.findAll().stream().map(this::toDomain).toList();
+    }
+
+    @Override
     public User save(User user) {
         return toDomain(repo.save(toJpa(user)));
     }
@@ -46,6 +51,9 @@ public class UserPersistenceAdapter implements UserRepository {
                 .accountNonExpired(e.isAccountNonExpired())
                 .accountNonLocked(e.isAccountNonLocked())
                 .credentialsNonExpired(e.isCredentialsNonExpired())
+                .avatarUrl(e.getAvatarUrl())
+                .phone(e.getPhone())
+                .department(e.getDepartment())
                 .createdAt(e.getCreatedAt())
                 .updatedAt(e.getUpdatedAt())
                 .build();
@@ -63,6 +71,9 @@ public class UserPersistenceAdapter implements UserRepository {
                 .accountNonExpired(u.isAccountNonExpired())
                 .accountNonLocked(u.isAccountNonLocked())
                 .credentialsNonExpired(u.isCredentialsNonExpired())
+                .avatarUrl(u.getAvatarUrl())
+                .phone(u.getPhone())
+                .department(u.getDepartment())
                 .createdAt(u.getCreatedAt())
                 .updatedAt(u.getUpdatedAt())
                 .build();

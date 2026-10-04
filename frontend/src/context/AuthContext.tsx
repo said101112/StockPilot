@@ -17,6 +17,7 @@ interface AuthContextValue extends AuthState {
   logout: () => void;
   refresh: () => Promise<string | null>;
   hasRole: (...roles: Role[]) => boolean;
+  updateUser: (updatedUser: Partial<User>) => void;
 }
 
 const AuthContext = createContext<AuthContextValue | undefined>(undefined);
@@ -99,8 +100,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return roles.includes(state.user.role);
   };
 
+  const updateUser = (updatedFields: Partial<User>) => {
+    setState((prev) => {
+      if (!prev.user) return prev;
+      const updatedUser: User = { ...prev.user, ...updatedFields };
+      localStorage.setItem(USER_KEY, JSON.stringify(updatedUser));
+      return { ...prev, user: updatedUser };
+    });
+  };
+
   return (
-    <AuthContext.Provider value={{ ...state, login, register, logout, refresh, hasRole }}>
+    <AuthContext.Provider value={{ ...state, login, register, logout, refresh, hasRole, updateUser }}>
       {children}
     </AuthContext.Provider>
   );

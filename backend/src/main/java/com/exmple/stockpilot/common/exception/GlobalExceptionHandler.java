@@ -24,12 +24,15 @@ public class GlobalExceptionHandler {
         return ResponseEntity.status(HttpStatus.NOT_FOUND).body(error);
     }
 
-    @ExceptionHandler(org.springframework.security.authentication.BadCredentialsException.class)
-    public ResponseEntity<ErrorResponse> handleBadCredentials(org.springframework.security.authentication.BadCredentialsException ex, HttpServletRequest request) {
+    @ExceptionHandler(org.springframework.security.core.AuthenticationException.class)
+    public ResponseEntity<ErrorResponse> handleAuthenticationException(org.springframework.security.core.AuthenticationException ex, HttpServletRequest request) {
+        String msg = (ex instanceof org.springframework.security.authentication.DisabledException)
+                ? "Ce compte est désactivé"
+                : "Invalid email or password";
         ErrorResponse error = ErrorResponse.of(
                 HttpStatus.UNAUTHORIZED.value(),
                 HttpStatus.UNAUTHORIZED.getReasonPhrase(),
-                "Invalid email or password",
+                msg,
                 request.getRequestURI()
         );
         return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(error);

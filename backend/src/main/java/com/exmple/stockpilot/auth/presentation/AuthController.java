@@ -49,6 +49,35 @@ public class AuthController {
         return ResponseEntity.ok(UserResponse.from(u));
     }
 
+    @PatchMapping("/profile")
+    public ResponseEntity<UserResponse> updateProfile(
+            Authentication authentication,
+            @RequestBody @Valid UpdateProfileRequest request
+    ) {
+        User updated = authService.updateProfile(
+                authentication.getName(),
+                request.firstName(),
+                request.lastName(),
+                request.phone(),
+                request.department(),
+                request.avatarUrl()
+        );
+        return ResponseEntity.ok(UserResponse.from(updated));
+    }
+
+    @PatchMapping("/password")
+    public ResponseEntity<java.util.Map<String, String>> changePassword(
+            Authentication authentication,
+            @RequestBody @Valid ChangePasswordRequest request
+    ) {
+        authService.changePassword(
+                authentication.getName(),
+                request.currentPassword(),
+                request.newPassword()
+        );
+        return ResponseEntity.ok(java.util.Map.of("message", "Mot de passe modifié avec succès"));
+    }
+
     private AuthResponse toResponse(AuthResult r) {
         return new AuthResponse(r.accessToken(), r.refreshToken(), r.tokenType(), r.expiresInSeconds(), UserResponse.from(r.user()));
     }

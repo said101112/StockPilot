@@ -16,6 +16,9 @@ public class User {
     private boolean accountNonExpired;
     private boolean accountNonLocked;
     private boolean credentialsNonExpired;
+    private String avatarUrl;
+    private String phone;
+    private String department;
     private Instant createdAt;
     private Instant updatedAt;
 
@@ -33,6 +36,9 @@ public class User {
         this.accountNonExpired = builder.accountNonExpired;
         this.accountNonLocked = builder.accountNonLocked;
         this.credentialsNonExpired = builder.credentialsNonExpired;
+        this.avatarUrl = builder.avatarUrl;
+        this.phone = builder.phone;
+        this.department = builder.department;
         this.createdAt = builder.createdAt;
         this.updatedAt = builder.updatedAt;
     }
@@ -58,10 +64,8 @@ public class User {
     }
 
     public String getFullName() {
-        String fn = firstName == null ? "" : firstName;
-        String ln = lastName == null ? "" : lastName;
-        String full = (fn + " " + ln).trim();
-        return full.isEmpty() ? email : full;
+        if (firstName == null && lastName == null) return email;
+        return ((firstName != null ? firstName : "") + " " + (lastName != null ? lastName : "")).trim();
     }
 
     public Role getRole() {
@@ -84,12 +88,56 @@ public class User {
         return credentialsNonExpired;
     }
 
+    public String getAvatarUrl() {
+        return avatarUrl;
+    }
+
+    public String getPhone() {
+        return phone;
+    }
+
+    public String getDepartment() {
+        return department;
+    }
+
     public Instant getCreatedAt() {
         return createdAt;
     }
 
     public Instant getUpdatedAt() {
         return updatedAt;
+    }
+
+    public void toggleEnabled() {
+        this.enabled = !this.enabled;
+        this.updatedAt = Instant.now();
+    }
+
+    public void setEnabled(boolean enabled) {
+        this.enabled = enabled;
+        this.updatedAt = Instant.now();
+    }
+
+    public void updateRole(Role role) {
+        if (role == null) {
+            throw new IllegalArgumentException("Role cannot be null");
+        }
+        this.role = role;
+        this.updatedAt = Instant.now();
+    }
+
+    public void updatePasswordHash(String passwordHash) {
+        this.passwordHash = passwordHash;
+        this.updatedAt = Instant.now();
+    }
+
+    public void updateProfile(String firstName, String lastName, String phone, String department, String avatarUrl) {
+        this.firstName = firstName;
+        this.lastName = lastName;
+        this.phone = phone;
+        this.department = department;
+        this.avatarUrl = avatarUrl;
+        this.updatedAt = Instant.now();
     }
 
     public static Builder builder() {
@@ -107,6 +155,9 @@ public class User {
         private boolean accountNonExpired = true;
         private boolean accountNonLocked = true;
         private boolean credentialsNonExpired = true;
+        private String avatarUrl;
+        private String phone;
+        private String department;
         private Instant createdAt;
         private Instant updatedAt;
 
@@ -157,6 +208,21 @@ public class User {
 
         public Builder credentialsNonExpired(boolean credentialsNonExpired) {
             this.credentialsNonExpired = credentialsNonExpired;
+            return this;
+        }
+
+        public Builder avatarUrl(String avatarUrl) {
+            this.avatarUrl = avatarUrl;
+            return this;
+        }
+
+        public Builder phone(String phone) {
+            this.phone = phone;
+            return this;
+        }
+
+        public Builder department(String department) {
+            this.department = department;
             return this;
         }
 

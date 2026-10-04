@@ -1,5 +1,5 @@
 import { lazy, Suspense } from "react";
-import { Route, BrowserRouter as Router, Routes } from "react-router";
+import { Route, BrowserRouter as Router, Routes, Navigate } from "react-router";
 import { ScrollToTop } from "./components/common/ScrollToTop";
 import { PageFallback } from "./components/common/PageFallback";
 import AppLayout from "./layout/AppLayout";
@@ -18,10 +18,11 @@ const MovementsPage = lazy(() => import("./pages/Movements/MovementsPage"));
 const SuppliersPage = lazy(() => import("./pages/Suppliers/SuppliersPage"));
 const ProductsPage = lazy(() => import("./pages/Products/ProductsPage"));
 const PurchasingInfoRecordPage = lazy(() => import("./pages/Procurement/PurchasingInfoRecordPage"));
+const UsersPage = lazy(() => import("./pages/Users/UsersPage"));
+const ProfilePage = lazy(() => import("./pages/Profile/ProfilePage"));
 const NotFound = lazy(() => import("./pages/OtherPage/NotFound"));
 const Forbidden = lazy(() => import("./pages/OtherPage/Forbidden"));
 const LoginPage = lazy(() => import("./pages/Auth/LoginPage"));
-const SignUpPage = lazy(() => import("./pages/Auth/SignUpPage"));
 
 export default function App() {
   return (
@@ -31,10 +32,10 @@ export default function App() {
           <ScrollToTop />
           <Suspense fallback={<PageFallback />}>
             <Routes>
-              {/* Public routes */}
+              {/* Public routes (Pas d'inscription publique - Provisioning interne par l'Admin) */}
               <Route path="/login" element={<LoginPage />} />
               <Route path="/signin" element={<LoginPage />} />
-              <Route path="/signup" element={<SignUpPage />} />
+              <Route path="/signup" element={<Navigate to="/login" replace />} />
               <Route path="/forbidden" element={<Forbidden />} />
 
               {/* Protected ERP Layout */}
@@ -48,12 +49,18 @@ export default function App() {
                   <Route path="/goods-receipt" element={<GoodsReceiptPage />} />
                   <Route path="/alerts" element={<AlertsPage />} />
                   <Route path="/movements" element={<MovementsPage />} />
+                  <Route path="/profile" element={<ProfilePage />} />
 
                   {/* Routes réservées aux Achats & Gestion (ADMIN & MANAGER uniquement) */}
                   <Route element={<ProtectedRoute allowedRoles={['ADMIN', 'MANAGER']} />}>
                     <Route path="/suppliers" element={<SuppliersPage />} />
                     <Route path="/purchasing-info-records" element={<PurchasingInfoRecordPage />} />
                     <Route path="/orders" element={<OrdersPage />} />
+                  </Route>
+
+                  {/* Routes réservées exclusivement à l'Administration Système (ADMIN uniquement) */}
+                  <Route element={<ProtectedRoute allowedRoles={['ADMIN']} />}>
+                    <Route path="/users" element={<UsersPage />} />
                   </Route>
                 </Route>
               </Route>

@@ -8,13 +8,10 @@ import {
   RefreshCw,
   Truck,
   Activity,
-  FilePlus2,
   Flame,
-  Search,
   ArrowRight,
   Clock,
   ShieldAlert,
-  CheckCircle2,
   ArrowUpRight,
   ClipboardList,
 } from "lucide-react";
@@ -49,16 +46,6 @@ export const UserDashboard: React.FC<RoleDashboardProps> = ({
   const handleOpenReceipt = (orderId?: string) => {
     setSelectedOrderIdForReceipt(orderId);
     setIsReceiptModalOpen(true);
-  };
-
-  const handleSearchFocus = () => {
-    const searchInput = document.querySelector('header input[type="text"]') as HTMLInputElement | null;
-    if (searchInput) {
-      searchInput.focus();
-      searchInput.scrollIntoView({ behavior: "smooth", block: "center" });
-    } else {
-      navigate("/inventory");
-    }
   };
 
   // Map des fournisseurs pour résoudre les noms réels

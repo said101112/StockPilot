@@ -131,5 +131,7 @@ export const httpClient = {
     apiClient<T>(withApiPrefix(path), { ...options, method: 'POST', body: body !== undefined ? JSON.stringify(body) : undefined }),
   put: <T>(path: string, body?: unknown, options?: RequestInit) =>
     apiClient<T>(withApiPrefix(path), { ...options, method: 'PUT', body: body !== undefined ? JSON.stringify(body) : undefined }),
+  patch: <T>(path: string, body?: unknown, options?: RequestInit) =>
+    apiClient<T>(withApiPrefix(path), { ...options, method: 'PATCH', body: body !== undefined ? JSON.stringify(body) : undefined }),
   delete: <T>(path: string, options?: RequestInit) => apiClient<T>(withApiPrefix(path), { ...options, method: 'DELETE' }),
 };

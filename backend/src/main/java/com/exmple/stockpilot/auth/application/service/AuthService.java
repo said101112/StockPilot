@@ -95,6 +95,90 @@ public class AuthService implements LoginUseCase, RefreshTokenUseCase, CurrentUs
         refreshTokenRepository.revokeAllByUserId(user.getId());
     }
 
+    @Transactional(readOnly = true)
+    public java.util.List<User> getAllUsers() {
+        return userRepository.findAll();
+    }
+
+    @Transactional
+    public User createUser(com.exmple.stockpilot.auth.presentation.CreateUserRequest request) {
+        if (userRepository.existsByEmail(request.email())) {
+            throw new IllegalArgumentException("Un utilisateur avec cet email existe déjà : " + request.email());
+        }
+        User user = User.builder()
+                .email(request.email().trim().toLowerCase())
+                .passwordHash(passwordEncoder.encode(request.password()))
+                .firstName(request.firstName().trim())
+                .lastName(request.lastName().trim())
+                .role(request.role())
+                .enabled(true)
+                .accountNonExpired(true)
+                .accountNonLocked(true)
+                .credentialsNonExpired(true)
+                .createdAt(Instant.now())
+                .updatedAt(Instant.now())
+                .build();
+        return userRepository.save(user);
+    }
+
+    @Transactional
+    public User toggleUserStatus(UUID userId, String currentUserEmail) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new IllegalArgumentException("Utilisateur introuvable"));
+
+        if (user.getEmail().equalsIgnoreCase(currentUserEmail)) {
+            throw new IllegalArgumentException("Vous ne pouvez pas désactiver votre propre compte administrateur.");
+        }
+
+        user.toggleEnabled();
+        if (!user.isEnabled()) {
+            refreshTokenRepository.revokeAllByUserId(user.getId());
+        }
+        return userRepository.save(user);
+    }
+
+    @Transactional
+    public User updateUserRole(UUID userId, com.exmple.stockpilot.auth.domain.enums.Role newRole, String currentUserEmail) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new IllegalArgumentException("Utilisateur introuvable"));
+
+        if (user.getEmail().equalsIgnoreCase(currentUserEmail) && newRole != com.exmple.stockpilot.auth.domain.enums.Role.ADMIN) {
+            throw new IllegalArgumentException("Vous ne pouvez pas rétrograder votre propre compte administrateur.");
+        }
+
+        user.updateRole(newRole);
+        return userRepository.save(user);
+    }
+
+    @Transactional
+    public void resetUserPassword(UUID userId, String newPassword) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new IllegalArgumentException("Utilisateur introuvable"));
+        user.updatePasswordHash(passwordEncoder.encode(newPassword));
+        userRepository.save(user);
+        refreshTokenRepository.revokeAllByUserId(user.getId());
+    }
+
+    @Transactional
+    public User updateProfile(String email, String firstName, String lastName, String phone, String department, String avatarUrl) {
+        User user = userRepository.findByEmail(email)
+                .orElseThrow(() -> new IllegalArgumentException("Utilisateur introuvable"));
+        user.updateProfile(firstName, lastName, phone, department, avatarUrl);
+        return userRepository.save(user);
+    }
+
+    @Transactional
+    public void changePassword(String email, String currentPassword, String newPassword) {
+        User user = userRepository.findByEmail(email)
+                .orElseThrow(() -> new IllegalArgumentException("Utilisateur introuvable"));
+        if (!passwordEncoder.matches(currentPassword, user.getPasswordHash())) {
+            throw new IllegalArgumentException("Le mot de passe actuel est incorrect.");
+        }
+        user.updatePasswordHash(passwordEncoder.encode(newPassword));
+        userRepository.save(user);
+        refreshTokenRepository.revokeAllByUserId(user.getId());
+    }
+
     @Transactional
     public void register(String email, String password, String firstName, String lastName, com.exmple.stockpilot.auth.domain.enums.Role role) {
         if (userRepository.existsByEmail(email)) {

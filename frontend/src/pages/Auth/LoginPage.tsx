@@ -215,13 +215,13 @@ export default function LoginPage() {
           </div>
         </form>
 
-        <div className="mt-5">
-          <p className="text-sm font-normal text-center text-gray-700 dark:text-gray-400 sm:text-start">
-            Don’t have an account?{' '}
-            <Link to="/signup" className="text-brand-500 hover:text-brand-600 dark:text-brand-400">
-              Sign Up
-            </Link>
-          </p>
+        <div className="mt-6 pt-4 border-t border-gray-100 dark:border-gray-800 text-center sm:text-start">
+          <div className="flex items-start gap-2.5 text-xs text-gray-500 dark:text-gray-400">
+            <ShieldCheck className="w-4 h-4 text-brand-500 shrink-0 mt-0.5" />
+            <p>
+              <strong className="font-semibold text-gray-700 dark:text-gray-300">Accès Entreprise sécurisé :</strong> L'approvisionnement des comptes est strictement géré par les administrateurs système.
+            </p>
+          </div>
         </div>
       </div>
     </div>

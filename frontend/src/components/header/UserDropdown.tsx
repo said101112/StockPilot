@@ -101,11 +101,15 @@ export default function UserDropdown() {
       >
         <span
           className={cn(
-            "me-3 flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-full font-bold text-white shadow-xs text-sm bg-gradient-to-tr transition-transform duration-200 group-hover:scale-105",
-            roleMeta.bgGradient
+            "me-3 flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-full font-bold text-white shadow-xs text-sm bg-gradient-to-tr transition-transform duration-200 group-hover:scale-105 border border-gray-200/80 dark:border-gray-700/80",
+            !user?.avatarUrl && roleMeta.bgGradient
           )}
         >
-          {initials}
+          {user?.avatarUrl ? (
+            <img src={user.avatarUrl} alt={displayName} className="h-full w-full object-cover" />
+          ) : (
+            initials
+          )}
         </span>
 
         <div className="hidden sm:flex flex-col text-start me-1.5">
@@ -147,11 +151,15 @@ export default function UserDropdown() {
           <div className="flex items-center gap-2.5">
             <span
               className={cn(
-                "flex h-11 w-11 shrink-0 items-center justify-center rounded-full font-bold text-white shadow-xs text-sm bg-gradient-to-tr",
-                roleMeta.bgGradient
+                "flex h-11 w-11 shrink-0 items-center justify-center overflow-hidden rounded-full font-bold text-white shadow-xs text-sm bg-gradient-to-tr border border-gray-200/80 dark:border-gray-700/80",
+                !user?.avatarUrl && roleMeta.bgGradient
               )}
             >
-              {initials}
+              {user?.avatarUrl ? (
+                <img src={user.avatarUrl} alt={displayName} className="h-full w-full object-cover" />
+              ) : (
+                initials
+              )}
             </span>
             <div className="overflow-hidden min-w-0">
               <span className="block truncate text-theme-sm font-semibold text-gray-800 dark:text-gray-100">
@@ -182,7 +190,7 @@ export default function UserDropdown() {
             <DropdownItem
               onItemClick={closeDropdown}
               tag="a"
-              to="/"
+              to="/profile"
               className="group flex items-center gap-3 rounded-lg px-3 py-2 text-theme-sm font-medium text-gray-700 hover:bg-gray-100 hover:text-gray-700 dark:text-gray-400 dark:hover:bg-white/5 dark:hover:text-gray-300"
             >
               <svg
@@ -207,7 +215,7 @@ export default function UserDropdown() {
             <DropdownItem
               onItemClick={closeDropdown}
               tag="a"
-              to="/"
+              to="/profile"
               className="group flex items-center gap-3 rounded-lg px-3 py-2 text-theme-sm font-medium text-gray-700 hover:bg-gray-100 hover:text-gray-700 dark:text-gray-400 dark:hover:bg-white/5 dark:hover:text-gray-300"
             >
               <svg

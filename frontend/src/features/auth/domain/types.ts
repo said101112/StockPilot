@@ -7,6 +7,9 @@ export interface User {
   lastName?: string | null;
   fullName: string;
   role: Role;
+  avatarUrl?: string | null;
+  phone?: string | null;
+  department?: string | null;
 }
 
 export interface LoginRequest {

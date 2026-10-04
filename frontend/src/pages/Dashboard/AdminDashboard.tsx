@@ -12,10 +12,10 @@ import {
   ShieldCheck,
   ArrowRight,
   ShieldAlert,
-  Activity,
   CheckCircle2,
   Database,
   Layers,
+  Users,
 } from "lucide-react";
 import type { RoleDashboardProps } from "./types";
 
@@ -615,15 +615,15 @@ export const AdminDashboard: React.FC<RoleDashboardProps> = ({
               </Link>
 
               <Link
-                to="/movements"
+                to="/users"
                 className="group flex items-center justify-between w-full rounded-lg border border-slate-200 bg-white p-2.5 text-left text-xs sm:text-sm font-semibold text-slate-800 transition-colors hover:border-slate-300 hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200 dark:hover:bg-slate-750"
               >
                 <div className="flex items-center gap-2.5">
-                  <Activity className="h-4 w-4 text-slate-500 group-hover:text-purple-600 transition-colors" />
-                  <span>Traçabilité & Flux Magasin</span>
+                  <Users className="h-4 w-4 text-slate-500 group-hover:text-brand-600 transition-colors" />
+                  <span>Gestion des Utilisateurs</span>
                 </div>
                 <span className="font-mono text-[11px] font-semibold text-slate-500 bg-slate-100 dark:bg-slate-700 dark:text-slate-300 px-1.5 py-0.5 rounded">
-                  LOG
+                  USR
                 </span>
               </Link>
             </div>

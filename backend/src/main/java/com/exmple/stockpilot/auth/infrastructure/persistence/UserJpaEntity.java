@@ -52,6 +52,15 @@ public class UserJpaEntity {
     @Column(name = "credentials_non_expired")
     private boolean credentialsNonExpired = true;
 
+    @Column(name = "avatar_url", columnDefinition = "TEXT")
+    private String avatarUrl;
+
+    @Column(name = "phone", length = 50)
+    private String phone;
+
+    @Column(name = "department", length = 150)
+    private String department;
+
     @Column(name = "created_at")
     private Instant createdAt;
 

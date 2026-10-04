@@ -5,7 +5,6 @@ import {
   FilePlus2,
   ShoppingCart,
   Building2,
-  AlertTriangle,
   RefreshCw,
   Plus,
   ArrowRight,
@@ -20,7 +19,6 @@ import type { RoleDashboardProps } from "./types";
 export const ManagerDashboard: React.FC<RoleDashboardProps> = ({
   stats,
   alerts = [],
-  recentMovements = [],
   productMap = {},
   stockHealth,
   loading,
