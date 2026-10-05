@@ -11,9 +11,10 @@ export default defineConfig({
   },
   server: {
     port: 5173,
+    host: true, // Listen on 0.0.0.0 for Docker container support
     proxy: {
       "/api": {
-        target: "http://localhost:8999",
+        target: process.env.VITE_BACKEND_URL || "http://localhost:8999",
         changeOrigin: true,
       },
     },

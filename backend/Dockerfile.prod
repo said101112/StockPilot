@@ -1,0 +1,45 @@
+# ==============================================================================
+# 🐳 StockPilot Backend — Dockerfile (Production Multi-Stage)
+# ==============================================================================
+
+# Stage 1: Build JAR using Eclipse Temurin JDK
+FROM eclipse-temurin:17-jdk-alpine AS builder
+
+WORKDIR /build
+
+COPY .mvn/ .mvn/
+COPY mvnw pom.xml ./
+RUN chmod +x mvnw
+
+# Leverage Docker cache for dependencies
+RUN ./mvnw dependency:go-offline -B || true
+
+# Copy source code and build production artifact
+COPY src/ ./src/
+RUN ./mvnw clean package -DskipTests -B
+
+# Stage 2: Minimal, hardened JRE runtime
+FROM eclipse-temurin:17-jre-alpine AS runner
+
+WORKDIR /app
+
+# Add curl for container health check
+RUN apk add --no-cache curl tzdata
+
+# Security: Run as dedicated non-root user
+RUN addgroup -S spring && adduser -S spring -G spring
+USER spring:spring
+
+# Copy compiled JAR from builder stage
+COPY --from=builder --chown=spring:spring /build/target/*.jar /app/app.jar
+
+# Container-optimized JVM parameters
+ENV JAVA_OPTS="-XX:+UseContainerSupport -XX:MaxRAMPercentage=75.0 -XX:+ExitOnOutOfMemoryError -Djava.security.egd=file:/dev/./urandom"
+
+EXPOSE 8999
+
+# Healthcheck
+HEALTHCHECK --interval=30s --timeout=5s --start-period=30s --retries=3 \
+    CMD curl -f http://localhost:8999/actuator/health || exit 1
+
+ENTRYPOINT ["sh", "-c", "exec java $JAVA_OPTS -jar /app/app.jar"]

@@ -1,0 +1,60 @@
+# ==============================================================================
+# 🛠️ StockPilot — Development Override Configuration
+# Usage:
+#   docker compose -f docker-compose.yml -f docker-compose.dev.yml up --build
+# ==============================================================================
+
+services:
+  # ----------------------------------------------------------------------------
+  # PostgreSQL (Dev: Expose port for DBeaver / pgAdmin / IDE database tools)
+  # ----------------------------------------------------------------------------
+  postgres:
+    ports:
+      - "${POSTGRES_PORT:-5432}:5432"
+    restart: unless-stopped
+
+  # ----------------------------------------------------------------------------
+  # Backend (Dev: Hot Compilation, Remote Debugging & Live Source Mount)
+  # ----------------------------------------------------------------------------
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile.dev
+    ports:
+      - "${BACKEND_PORT:-8999}:8999"
+      - "${BACKEND_DEBUG_PORT:-5005}:5005"
+    volumes:
+      # Mount backend source directory for hot code updates
+      - ./backend:/app
+      # Isolate Maven target directory inside container
+      - /app/target
+      # Cache downloaded Maven dependencies
+      - maven_cache:/root/.m2
+    environment:
+      SPRING_PROFILES_ACTIVE: dev
+      SEED_ENABLED: ${SEED_ENABLED:-true}
+      JPA_DDL_AUTO: ${JPA_DDL_AUTO:-update}
+    restart: unless-stopped
+
+  # ----------------------------------------------------------------------------
+  # Frontend (Dev: Vite Development Server with Hot Module Replacement)
+  # ----------------------------------------------------------------------------
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile.dev
+    ports:
+      - "${FRONTEND_PORT:-5173}:5173"
+    volumes:
+      # Mount frontend source directory for live HMR updates
+      - ./frontend:/app
+      # Isolate node_modules inside container
+      - /app/node_modules
+    environment:
+      NODE_ENV: development
+      VITE_BACKEND_URL: http://backend:8999
+    restart: unless-stopped
+
+volumes:
+  maven_cache:
+    name: stockpilot_maven_cache

@@ -1,0 +1,19 @@
+# ==============================================================================
+# 🐳 StockPilot Frontend — Dockerfile (Development)
+# ==============================================================================
+FROM node:20-alpine
+
+WORKDIR /app
+
+# Install dependencies (cached when package files don't change)
+COPY package.json package-lock.json ./
+RUN npm install
+
+# Copy application source
+COPY . .
+
+# Expose Vite default dev port
+EXPOSE 5173
+
+# Run Vite development server with HMR bound to all network interfaces
+CMD ["npm", "run", "dev", "--", "--host", "0.0.0.0"]

@@ -1,0 +1,26 @@
+# ==============================================================================
+# 🐳 StockPilot Backend — Dockerfile (Development)
+# ==============================================================================
+FROM eclipse-temurin:17-jdk-alpine
+
+WORKDIR /app
+
+# Install bash & curl for developer comfort and health checks
+RUN apk add --no-cache bash curl
+
+# Copy Maven wrapper and dependencies configuration
+COPY .mvn/ .mvn/
+COPY mvnw pom.xml ./
+RUN chmod +x mvnw
+
+# Download dependencies in advance to leverage Docker layer caching
+RUN ./mvnw dependency:go-offline -B || true
+
+# Copy source code
+COPY src/ ./src/
+
+EXPOSE 8999
+EXPOSE 5005
+
+# Run Spring Boot in dev mode (supports debug port 5005)
+CMD ["./mvnw", "spring-boot:run", "-Dspring-boot.run.jvmArguments=-agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=*:5005"]
