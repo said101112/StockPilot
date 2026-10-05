@@ -37,6 +37,9 @@ jobs:
     name: Build & Push Images (Staging Version Tags)
     runs-on: ubuntu-latest
     if: ${{ github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success' }}
+    env:
+      DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
+      DOCKERHUB_TOKEN: ${{ secrets.DOCKERHUB_TOKEN }}
     outputs:
       image_tag: ${{ steps.meta.outputs.tag }}
 
@@ -80,7 +83,7 @@ jobs:
           password: ${{ secrets.GITHUB_TOKEN }}
 
       - name: 🐳 Log in to Docker Hub (if credentials provided)
-        if: "${{ secrets.DOCKERHUB_USERNAME != '' && secrets.DOCKERHUB_TOKEN != '' }}"
+        if: env.DOCKERHUB_USERNAME != '' && env.DOCKERHUB_TOKEN != ''
         uses: docker/login-action@v3
         with:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
@@ -116,6 +119,9 @@ jobs:
     environment:
       name: staging
       url: ${{ vars.STAGING_APP_URL || 'http://staging.stockpilot.local' }}
+    env:
+      STAGING_SSH_HOST: ${{ secrets.STAGING_SSH_HOST }}
+      STAGING_SSH_KEY: ${{ secrets.STAGING_SSH_KEY }}
 
     steps:
       - name: 📥 Checkout repository
@@ -124,7 +130,7 @@ jobs:
           ref: ${{ github.event.workflow_run.head_sha || github.sha }}
 
       - name: 🚀 Deploy via SSH (when server credentials are provided)
-        if: "${{ secrets.STAGING_SSH_HOST != '' && secrets.STAGING_SSH_KEY != '' }}"
+        if: env.STAGING_SSH_HOST != '' && env.STAGING_SSH_KEY != ''
         uses: appleboy/ssh-action@v1.0.3
         with:
           host: ${{ secrets.STAGING_SSH_HOST }}
@@ -163,7 +169,7 @@ jobs:
             echo "✅ Staging deployment of version [${TARGET_TAG}] completed!"
 
       - name: ℹ️ Staging Deployment Summary & Setup Notice
-        if: "${{ secrets.STAGING_SSH_HOST == '' || secrets.STAGING_SSH_KEY == '' }}"
+        if: env.STAGING_SSH_HOST == '' || env.STAGING_SSH_KEY == ''
         run: |
           echo "::notice title=Staging Images Published::Images for tag [${{ needs.build-and-push-staging.outputs.image_tag }}] were pushed."
           echo "To enable automated remote deployment to your Staging server, configure these secrets in Settings > Environments > staging:"

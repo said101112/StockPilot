@@ -36,6 +36,9 @@ jobs:
   build-and-push-production:
     name: Build & Push Images (Production Version Tags)
     runs-on: ubuntu-latest
+    env:
+      DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
+      DOCKERHUB_TOKEN: ${{ secrets.DOCKERHUB_TOKEN }}
     outputs:
       image_tag: ${{ steps.meta.outputs.tag }}
 
@@ -99,7 +102,7 @@ jobs:
           password: ${{ secrets.GITHUB_TOKEN }}
 
       - name: 🐳 Log in to Docker Hub (if credentials provided)
-        if: "${{ secrets.DOCKERHUB_USERNAME != '' && secrets.DOCKERHUB_TOKEN != '' }}"
+        if: env.DOCKERHUB_USERNAME != '' && env.DOCKERHUB_TOKEN != ''
         uses: docker/login-action@v3
         with:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
@@ -135,13 +138,16 @@ jobs:
     environment:
       name: production
       url: ${{ vars.PROD_APP_URL || 'https://stockpilot.app' }}
+    env:
+      PROD_SSH_HOST: ${{ secrets.PROD_SSH_HOST }}
+      PROD_SSH_KEY: ${{ secrets.PROD_SSH_KEY }}
 
     steps:
       - name: 📥 Checkout repository
         uses: actions/checkout@v4
 
       - name: 🚀 Remote Deploy via SSH
-        if: "${{ secrets.PROD_SSH_HOST != '' && secrets.PROD_SSH_KEY != '' }}"
+        if: env.PROD_SSH_HOST != '' && env.PROD_SSH_KEY != ''
         uses: appleboy/ssh-action@v1.0.3
         with:
           host: ${{ secrets.PROD_SSH_HOST }}
@@ -180,7 +186,7 @@ jobs:
             echo "✅ Production deployment of version [${TARGET_TAG}] successful!"
 
       - name: ℹ️ Production Deployment Notice
-        if: "${{ secrets.PROD_SSH_HOST == '' || secrets.PROD_SSH_KEY == '' }}"
+        if: env.PROD_SSH_HOST == '' || env.PROD_SSH_KEY == ''
         run: |
           echo "::notice title=Production Images Published::Production versioned images for tag [${{ needs.build-and-push-production.outputs.image_tag }}] are ready."
           echo "To automate server rollout, configure these secrets in Settings > Environments > production:"
