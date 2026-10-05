@@ -59,9 +59,12 @@ jobs:
           echo "IMAGE_TAG=${TAG_NAME}" >> $GITHUB_ENV
           echo "SHORT_SHA=${SHORT_SHA}" >> $GITHUB_ENV
 
+          # Force repository name to lowercase for Docker / GHCR naming compliance
+          REPO_LOWER=$(echo "${{ github.repository }}" | tr '[:upper:]' '[:lower:]')
+
           # Build versioned tag lists without :latest
-          BACKEND_TAGS="ghcr.io/${{ github.repository }}/backend:${TAG_NAME}"
-          FRONTEND_TAGS="ghcr.io/${{ github.repository }}/frontend:${TAG_NAME}"
+          BACKEND_TAGS="ghcr.io/${REPO_LOWER}/backend:${TAG_NAME}"
+          FRONTEND_TAGS="ghcr.io/${REPO_LOWER}/frontend:${TAG_NAME}"
 
           DH_USER=$(echo "${DOCKERHUB_USERNAME}" | tr -d '\r\n ' | xargs || true)
           if [ -n "${DH_USER}" ]; then
@@ -154,8 +157,9 @@ jobs:
               export DOCKER_IMAGE_FRONTEND="${{ secrets.DOCKERHUB_USERNAME }}/stockpilot-frontend:${TARGET_TAG}"
             else
               echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u "${{ github.actor }}" --password-stdin
-              export DOCKER_IMAGE_BACKEND="ghcr.io/${{ github.repository }}/backend:${TARGET_TAG}"
-              export DOCKER_IMAGE_FRONTEND="ghcr.io/${{ github.repository }}/frontend:${TARGET_TAG}"
+              REPO_LOWER=$(echo "${{ github.repository }}" | tr '[:upper:]' '[:lower:]')
+              export DOCKER_IMAGE_BACKEND="ghcr.io/${REPO_LOWER}/backend:${TARGET_TAG}"
+              export DOCKER_IMAGE_FRONTEND="ghcr.io/${REPO_LOWER}/frontend:${TARGET_TAG}"
             fi
 
             echo "📦 Pulling staging backend image: ${DOCKER_IMAGE_BACKEND}..."
