@@ -63,11 +63,14 @@ jobs:
           BACKEND_TAGS="ghcr.io/${{ github.repository }}/backend:${TAG_NAME}"
           FRONTEND_TAGS="ghcr.io/${{ github.repository }}/frontend:${TAG_NAME}"
 
-          if [ -n "${{ secrets.DOCKERHUB_USERNAME }}" ]; then
-            DH_USER="${{ secrets.DOCKERHUB_USERNAME }}"
+          DH_USER=$(echo "${DOCKERHUB_USERNAME}" | tr -d '\r\n ' | xargs || true)
+          if [ -n "${DH_USER}" ]; then
             BACKEND_TAGS="${BACKEND_TAGS},${DH_USER}/stockpilot-backend:${TAG_NAME}"
             FRONTEND_TAGS="${FRONTEND_TAGS},${DH_USER}/stockpilot-frontend:${TAG_NAME}"
           fi
+
+          BACKEND_TAGS=$(echo "${BACKEND_TAGS}" | tr -d '\r\n ')
+          FRONTEND_TAGS=$(echo "${FRONTEND_TAGS}" | tr -d '\r\n ')
 
           echo "backend_tags=${BACKEND_TAGS}" >> $GITHUB_OUTPUT
           echo "frontend_tags=${FRONTEND_TAGS}" >> $GITHUB_OUTPUT

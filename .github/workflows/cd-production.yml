@@ -78,8 +78,8 @@ jobs:
           fi
 
           # Add Docker Hub tags if credentials are configured
-          if [ -n "${{ secrets.DOCKERHUB_USERNAME }}" ]; then
-            DH_USER="${{ secrets.DOCKERHUB_USERNAME }}"
+          DH_USER=$(echo "${DOCKERHUB_USERNAME}" | tr -d '\r\n ' | xargs || true)
+          if [ -n "${DH_USER}" ]; then
             BACKEND_TAGS="${BACKEND_TAGS},${DH_USER}/stockpilot-backend:${VERSION},${DH_USER}/stockpilot-backend:sha-${SHORT_SHA}"
             FRONTEND_TAGS="${FRONTEND_TAGS},${DH_USER}/stockpilot-frontend:${VERSION},${DH_USER}/stockpilot-frontend:sha-${SHORT_SHA}"
             if [[ "${VERSION}" =~ ^v[0-9]+\.[0-9]+ ]]; then
@@ -87,6 +87,9 @@ jobs:
               FRONTEND_TAGS="${FRONTEND_TAGS},${DH_USER}/stockpilot-frontend:${CLEAN_VERSION}"
             fi
           fi
+
+          BACKEND_TAGS=$(echo "${BACKEND_TAGS}" | tr -d '\r\n ')
+          FRONTEND_TAGS=$(echo "${FRONTEND_TAGS}" | tr -d '\r\n ')
 
           echo "backend_tags=${BACKEND_TAGS}" >> $GITHUB_OUTPUT
           echo "frontend_tags=${FRONTEND_TAGS}" >> $GITHUB_OUTPUT
