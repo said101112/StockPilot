@@ -4,9 +4,20 @@ Ce guide détaille l'architecture complète d'intégration continue (**CI**) et 
 
 ---
 
-## 🏗️ 1. Vue d'ensemble du Pipeline
+## 🏷️ Règle d'Or : Versioning Immuable (Politique Zéro `:latest`)
 
-Le cycle de vie du code suit un flux strict à travers 3 workflows indépendants :
+> [!IMPORTANT]
+> Dans ce pipeline, **le tag `:latest` est strictement banni en production et en recette**.
+> - **Pourquoi interdire `:latest` ?** Le tag `:latest` est mutable : il change à chaque build, empêche de savoir quel commit exact tourne sur le serveur, et rend tout rollback incertain et périlleux.
+> - **Ce qui est utilisé à la place :** Des **tags de version immuables** :
+>   - **Production (Git Tag ou Release)** : `v1.0.0` et `1.0.0` (SemVer officiel).
+>   - **Production (Push sur `main`)** : `prod-<short_sha>` et `sha-<short_sha>` (ex: `prod-a1b2c3d`).
+>   - **Staging (Push sur `staging`)** : `staging-<short_sha>` (ex: `staging-a1b2c3d`).
+>   - **Traçabilité totale** : Chaque conteneur déployé est lié à 100% à un commit Git précis.
+
+---
+
+## 🏗️ 1. Vue d'ensemble du Pipeline
 
 ```mermaid
 flowchart TD
@@ -27,18 +38,18 @@ flowchart TD
 
     subgraph Staging ["3. CD Recette (cd-staging.yml) - Déploiement Continu"]
         E -->|Push ou Merge sur staging| G(CD Staging)
-        G --> H1[Build & Push Images GHCR :staging]
-        H1 --> H2[Deploy SSH Staging Server]
+        G --> H1["Build & Push Images Versionnées (staging-sha)\nDocker Hub + GHCR"]
+        H1 --> H2[Deploy SSH Staging Server avec Tag Exact]
         H2 --> H3[Healthcheck & Smoke Test Staging]
     end
 
     subgraph Production ["4. CD Production (cd-production.yml) - Déploiement Sécurisé"]
         E -->|Push/Merge sur main ou Tag v*.*.*| I(CD Production)
-        I --> J1[Build & Push Images GHCR :latest / :tag]
+        I --> J1["Build & Push Images Taguées (v1.0.0, prod-sha)\nDocker Hub + GHCR"]
         J1 --> J2{🛑 SAS D'APPROBATION MANUELLE\nGitHub Environment: production\nAttente validation reviewer}
         J2 -->|Rejeté| K1[Déploiement Annulé]
         J2 -->|Approuvé par Lead/Admin| J3[Deploy SSH Production Server]
-        J3 --> J4[Rolling Update Docker Compose]
+        J3 --> J4[Rolling Update Docker Compose avec Tag Exact]
         J4 --> J5[Healthcheck & Smoke Test Prod avec Retry]
     end
 ```
@@ -49,170 +60,125 @@ flowchart TD
 
 Les workflows sont hébergés dans `.github/workflows/` et respectent le principe de responsabilité unique :
 
-| Fichier Workflow | Événement Déclencheur | Objectif Principal |
-| :--- | :--- | :--- |
-| [`.github/workflows/ci.yml`](file:///c:/Users/hp/Desktop/Hacker/StockPilot/.github/workflows/ci.yml) | • Pull Requests vers `main` ou `staging`<br>• Pushes sur `feat/**`, `fix/**` | **Validation de qualité** : Exécution des tests, compilation frontend/backend, vérification Docker. Aucun conteneur n'est poussé, aucun serveur n'est touché. |
-| [`.github/workflows/cd-staging.yml`](file:///c:/Users/hp/Desktop/Hacker/StockPilot/.github/workflows/cd-staging.yml) | • Push ou merge sur `staging`<br>• `workflow_dispatch` (déclenchement manuel) | **Livraison continue Staging** : Packaging automatique des images conteneurisées (`ghcr.io/...:staging`), déploiement SSH immédiat sur le serveur de recette. |
-| [`.github/workflows/cd-production.yml`](file:///c:/Users/hp/Desktop/Hacker/StockPilot/.github/workflows/cd-production.yml) | • Push ou merge sur `main`<br>• Publication d'un tag de version `v*.*.*`<br>• `workflow_dispatch` | **Déploiement Production avec Approbation** : Création d'images durcies, arrêt sur sas de révision manuelle, déploiement SSH haute disponibilité avec boucle de healthcheck. |
+| Fichier Workflow | Événement Déclencheur | Registres Cibles | Politique de Tagging |
+| :--- | :--- | :--- | :--- |
+| [`.github/workflows/ci.yml`](file:///c:/Users/hp/Desktop/Hacker/StockPilot/.github/workflows/ci.yml) | • PR vers `main` ou `staging`<br>• Pushes sur `feat/**`, `fix/**` | *Aucun (Validation pure)* | Aucun push. Validation des 139 tests et de la syntaxe Docker. |
+| [`.github/workflows/cd-staging.yml`](file:///c:/Users/hp/Desktop/Hacker/StockPilot/.github/workflows/cd-staging.yml) | • Push ou merge sur `staging`<br>• `workflow_dispatch` | **Docker Hub** + **GHCR** | `staging-<short_sha>` *(ex: staging-a1b2c3d)* |
+| [`.github/workflows/cd-production.yml`](file:///c:/Users/hp/Desktop/Hacker/StockPilot/.github/workflows/cd-production.yml) | • Push sur `main`<br>• Tag Git `v*.*.*`<br>• `workflow_dispatch` | **Docker Hub** + **GHCR** | • `vX.Y.Z` & `X.Y.Z`<br>• `prod-<short_sha>`<br>• `sha-<short_sha>` |
 
 ---
 
-## 🔍 3. Détail des Étapes de Chaque Workflow
+## 🐳 3. Configuration Docker Hub & Registres
+
+Le pipeline supporte à la fois **Docker Hub** (`docker.io`) et le registre privé **GitHub Packages** (`ghcr.io`).
+
+### A. Générer un jeton Docker Hub (Personal Access Token)
+1. Connectez-vous sur [hub.docker.com](https://hub.docker.com).
+2. Rendez-vous dans **Account Settings** ➔ **Security** ➔ **New Access Token**.
+3. Donnez une description (ex: `StockPilot CI/CD`) avec les droits **Read & Write**.
+4. Copiez la clé secrète générée (`dckr_pat_...`).
+
+### B. Déclarer les Secrets dans GitHub
+Dans votre dépôt GitHub, allez dans **Settings** ➔ **Secrets and variables** ➔ **Actions** (ou dans chaque Environment) :
+- `DOCKERHUB_USERNAME` : Votre identifiant Docker Hub (ou organisation).
+- `DOCKERHUB_TOKEN` : Votre jeton d'accès Docker Hub (PAT).
+
+> [!TIP]
+> Si `DOCKERHUB_USERNAME` et `DOCKERHUB_TOKEN` sont configurés, le workflow pousse automatiquement les conteneurs sur votre compte Docker Hub sous les noms :
+> - `<DOCKERHUB_USERNAME>/stockpilot-backend:<TAG>`
+> - `<DOCKERHUB_USERNAME>/stockpilot-frontend:<TAG>`
+> En parallèle, les images sont également sauvegardées de manière sécurisée sur `ghcr.io` !
+
+---
+
+## 🔍 4. Détail des Étapes de Chaque Workflow
 
 ### A. Pipeline d'Intégration Continue (`ci.yml`)
 
-Ce workflow s'exécute en parallèle sur 3 jobs distincts dès qu'un développeur pousse sur sa branche ou ouvre une PR :
-
-1. **Job 1 : `backend-ci` (Spring Boot & Base de Données)**
-   - **Checkout du dépôt** (`actions/checkout@v4`).
-   - **Configuration du JDK 17 Eclipse Temurin** avec mise en cache automatique des dépendances Maven (`~/.m2`).
-   - **Exécution des 139 tests automatisés** :
-     - 110 tests unitaires isolés (Mockito, services métier, règles de stock, validation).
-     - 29 tests d'intégration complets avec Spring Security, base H2 en mémoire, et contrôleurs MockMvc.
-   - **Archivage des rapports Surefire** : Les rapports XML/HTML sont enregistrés comme artefacts GitHub Actions pour faciliter le diagnostic en cas d'échec.
-
-2. **Job 2 : `frontend-ci` (React, TypeScript & Vite)**
-   - **Checkout du dépôt** (`actions/checkout@v4`).
-   - **Configuration de Node.js 20** avec cache des paquets `npm`.
-   - **Installation déterministe** : `npm ci` pour garantir la conformité avec `package-lock.json`.
-   - **Validation TypeScript & Build** : `npm run build` (qui exécute `tsc -b && vite build`) vérifiant à la fois la conformité des types et la génération optimale du bundle JavaScript de production.
-   - **Archivage du bundle `dist/`** en artefact de build.
-
-3. **Job 3 : `docker-validation` (Intégrité des Conteneurs)**
-   - **Initialisation de Docker Buildx** avec cache GitHub Actions (`type=gha`).
-   - **Validation de syntaxe Docker Compose** : Teste `docker compose config` pour l'environnement de développement et de production.
-   - **Dry-run Build** : Construit à blanc les images de production du backend et du frontend pour vérifier que les Dockerfiles multi-stage compilent sans erreur.
+1. **Job `backend-ci` (Spring Boot & PostgreSQL)**
+   - Setup JDK 17 (Temurin) avec cache Maven (`~/.m2`).
+   - Exécution des **139 tests automatisés** : 110 tests unitaires métier + 29 tests d'intégration avec Spring Security et base H2.
+   - Archivage des rapports Surefire en artefacts.
+2. **Job `frontend-ci` (React & Vite)**
+   - Setup Node.js 20 avec cache `npm`.
+   - Installation déterministe `npm ci`.
+   - Typecheck TypeScript strict et compilation de production `npm run build`.
+   - Archivage du bundle `dist/`.
+3. **Job `docker-validation`**
+   - Lint de `docker-compose.yml`, `docker-compose.dev.yml` et `docker-compose.prod.yml`.
+   - Dry-run build multi-stage Docker avec cache `type=gha`.
 
 ---
 
 ### B. Pipeline de Déploiement Staging (`cd-staging.yml`)
 
-Ce workflow prend le relais dès que du code est fusionné dans la branche `staging` :
-
-1. **Job 1 : `build-and-push-staging`**
-   - Calcul des tags Docker : `:staging` et `:staging-<short_sha>`.
-   - Authentification automatique au registre privé **GitHub Container Registry (GHCR)** via `GITHUB_TOKEN`.
-   - Construction et publication des images Docker `backend` et `frontend` avec mise en cache GitHub Actions des couches de build (`mode=max`).
-2. **Job 2 : `deploy-staging` (Cible environnement GitHub : `staging`)**
-   - Connexion SSH sécurisée au serveur de staging via `appleboy/ssh-action`.
-   - Récupération des dernières images depuis `ghcr.io`.
-   - Démarrage des conteneurs via `docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d`.
-   - Nettoyage des images orphelines (`docker image prune -f`).
-   - **Smoke Test automatisé** : Exécution d'un `curl` sur l'endpoint de healthcheck pour confirmer que le service est opérationnel.
+1. **Calcul du tag immuable** : Définition de `staging-${SHORT_SHA}`.
+2. **Authentification** : Connexion à Docker Hub et GHCR.
+3. **Build & Push** des images backend et frontend avec le tag `staging-${SHORT_SHA}`.
+4. **Déploiement SSH (Serveur de Recette)** :
+   - Export des variables `DOCKER_IMAGE_BACKEND` et `DOCKER_IMAGE_FRONTEND` avec le tag `staging-${SHORT_SHA}`.
+   - Pull ciblé des conteneurs correspondants.
+   - `docker compose up -d` pour un rechargement sans interruption.
+   - **Smoke Test automatisé** via `curl` sur l'endpoint de santé.
 
 ---
 
 ### C. Pipeline de Déploiement Production (`cd-production.yml`)
 
-Ce workflow applique les règles les plus strictes pour garantir la sécurité et la stabilité du service client :
-
-1. **Règle de Concurrence (`concurrency`)** :
-   - `cancel-in-progress: false` : Un déploiement de production en cours n'est **jamais annulé** par un nouveau commit, évitant ainsi de laisser les conteneurs dans un état instable ou partiel.
-
-2. **Job 1 : `build-and-push-production`**
-   - Résolution du tag de version (ex: `v1.0.0`, `prod-a1b2c3d`, `:latest`).
-   - Compilation et publication des images de production durcies sur GHCR.
-
-3. **Job 2 : `deploy-production` — 🛑 Sas d'Approbation Manuelle Obligatoire**
-   - **Déclaration de l'environnement** : `environment: name: production`.
-   - **Sas de validation** : Le pipeline **s'arrête automatiquement** avant d'exécuter la moindre action sur le serveur.
-   - Seuls les relecteurs autorisés (Tech Lead, DevOps, Administrateur) peuvent inspecter la version et cliquer sur **"Approve and deploy"**.
-   - Une fois approuvé, le déploiement SSH s'exécute :
-     - Authentification sécurisée et pull des images `:latest` / taguées.
-     - Mise à jour en continu (`rolling update`) via Docker Compose.
-   - **Healthcheck résilient avec Retry** :
-     - Le pipeline teste l'endpoint `PROD_HEALTH_URL` jusqu'à **6 fois avec un délai de 10 secondes** (pour laisser le temps à Spring Boot et PostgreSQL de finaliser leurs migrations).
-     - Si l'endpoint ne renvoie pas `200 OK`, le job échoue immédiatement pour alerter l'équipe.
+1. **Verrouillage de concurrence** : `cancel-in-progress: false` (interdiction stricte de couper un déploiement prod).
+2. **Calcul de la version sémantique** :
+   - Si déclenché par un tag Git `v1.2.0` ➔ tags `v1.2.0`, `1.2.0`, `sha-<sha>`.
+   - Si déclenché par push sur `main` ➔ tags `prod-<sha>`, `sha-<sha>`.
+   - **Aucun tag `:latest` n'est généré**.
+3. **🛑 Sas d'Approbation Manuelle (`environment: production`)** :
+   - Le workflow s'arrête automatiquement.
+   - Les relecteurs autorisés examinent le numéro de version et valident le déploiement.
+4. **Déploiement SSH (Serveur de Production)** :
+   - Authentification et `docker pull` de la version exacte approuvée.
+   - Lancement avec Docker Compose.
+   - **Boucle de healthcheck résiliente** (6 tentatives toutes les 10s).
 
 ---
 
-## 🛑 4. Comment Configurer l'Approbation Manuelle en Production
-
-Pour que GitHub Actions exige une validation manuelle avant le déploiement sur votre serveur de production, suivez ces étapes simples dans GitHub :
+## 🛑 5. Configuration du Sas d'Approbation Manuelle
 
 ```
 GitHub Repository ➔ Settings ➔ Environments ➔ "production"
 ```
 
-1. Dans votre dépôt GitHub, cliquez sur **Settings** (Paramètres).
-2. Dans le menu de gauche, sous la section **Code and automation**, cliquez sur **Environments**.
-3. Cliquez sur **New environment** et nommez-le exactement : `production`.
-4. Dans la section **Environment protection rules** :
-   - Cochez la case **Required reviewers** (Relecteurs requis).
-   - Ajoutez votre compte GitHub ou l'équipe autorisée (ex: Tech Lead, DevOps).
-   - *(Optionnel)* Cochez **Prevent self-review** si vous souhaitez qu'une autre personne que l'auteur du commit valide la mise en production.
-   - *(Optionnel)* Définissez un **Wait timer** (délai de grâce avant démarrage).
-5. Cliquez sur **Save protection rules**.
-
-### Ce qui se passe lors d'une mise en production :
-1. Le job `build-and-push-production` construit et publie les images.
-2. Le job `deploy-production` passe en état **🟡 Waiting for review**.
-3. Les reviewers reçoivent une notification par e-mail / notification GitHub avec un bouton :
-   - **"Review deployments"** ➔ Affichage du commit et de l'environnement.
-   - **"Approve and deploy"** ➔ Lance immédiatement le déploiement SSH sur le serveur.
-   - **"Reject"** ➔ Annule le déploiement en toute sécurité sans impacter le serveur existant.
+1. Dans votre dépôt GitHub, cliquez sur **Settings** ➔ **Environments**.
+2. Cliquez sur **New environment** et nommez-le : `production`.
+3. Sous **Environment protection rules** :
+   - Cochez **Required reviewers**.
+   - Ajoutez les personnes autorisées à valider la mise en production.
+4. Cliquez sur **Save protection rules**.
 
 ---
 
-## 🔐 5. Configuration des Secrets GitHub
+## 🔐 6. Récapitulatif des Secrets GitHub
 
-Dans **Settings** > **Environments**, configurez les secrets associés à chaque environnement :
-
-### A. Environnement `staging`
-| Secret / Variable | Type | Description |
+| Secret / Variable | Portée | Utilité |
 | :--- | :--- | :--- |
-| `STAGING_SSH_HOST` | Secret | Adresse IP ou FQDN du serveur de staging |
-| `STAGING_SSH_USER` | Secret | Nom de l'utilisateur SSH (`ubuntu`, `deploy`, etc.) |
-| `STAGING_SSH_KEY` | Secret | Clé privée SSH (format OpenSSH sans passphrase) |
-| `STAGING_SSH_PORT` | Secret | *(Optionnel)* Port SSH personnalisé (défaut : `22`) |
-| `STAGING_APP_DIR` | Secret | Répertoire hôte sur le serveur (ex: `/opt/stockpilot-staging`) |
-| `STAGING_HEALTH_URL`| Variable | URL du healthcheck (ex: `https://staging.stockpilot.app/health`) |
-
-### B. Environnement `production`
-| Secret / Variable | Type | Description |
-| :--- | :--- | :--- |
-| `PROD_SSH_HOST` | Secret | Adresse IP ou FQDN du serveur de production |
-| `PROD_SSH_USER` | Secret | Nom de l'utilisateur SSH de déploiement |
-| `PROD_SSH_KEY` | Secret | Clé privée SSH autorisée sur le serveur de prod |
-| `PROD_SSH_PORT` | Secret | *(Optionnel)* Port SSH personnalisé (défaut : `22`) |
-| `PROD_APP_DIR` | Secret | Répertoire hôte sur le serveur (ex: `/opt/stockpilot`) |
-| `PROD_HEALTH_URL` | Variable | URL publique pour le test de santé (ex: `https://stockpilot.app/health`) |
-
-> [!NOTE]
-> L'authentification au registre de conteneurs **GitHub Container Registry (`ghcr.io`)** est entièrement native et automatique via `${{ secrets.GITHUB_TOKEN }}` fourni par GitHub Actions, sans aucune saisie manuelle de mot de passe !
+| `DOCKERHUB_USERNAME` | Repository / Environment | Identifiant Docker Hub |
+| `DOCKERHUB_TOKEN` | Repository / Environment | Access Token (PAT) Docker Hub |
+| `STAGING_SSH_HOST` | Env `staging` | IP/Domaine serveur staging |
+| `STAGING_SSH_USER` | Env `staging` | Utilisateur SSH staging |
+| `STAGING_SSH_KEY` | Env `staging` | Clé privée SSH staging |
+| `STAGING_APP_DIR` | Env `staging` | Dossier cible (ex: `/opt/stockpilot-staging`) |
+| `PROD_SSH_HOST` | Env `production` | IP/Domaine serveur production |
+| `PROD_SSH_USER` | Env `production` | Utilisateur SSH production |
+| `PROD_SSH_KEY` | Env `production` | Clé privée SSH production |
+| `PROD_APP_DIR` | Env `production` | Dossier cible (ex: `/opt/stockpilot`) |
+| `PROD_HEALTH_URL` | Variable Env `production` | URL publique de santé (ex: `https://stockpilot.app/health`) |
 
 ---
 
-## 🖥️ 6. Préparation Initiale du Serveur Distant
+## 🔄 7. Procédure de Rollback Instantané
 
-Sur votre machine distante (serveur VPS / Cloud Ubuntu ou Debian), exécutez ces étapes une seule fois :
+Si une régression survient en production, le retour arrière est immédiat et déterministe grâce au versioning immuable :
 
-```bash
-# 1. Créer le dossier applicatif
-sudo mkdir -p /opt/stockpilot && cd /opt/stockpilot
-
-# 2. Copier les fichiers compose du projet
-# (docker-compose.yml, docker-compose.prod.yml et .env.prod.example)
-
-# 3. Créer le fichier .env de production sécurisé
-cp .env.prod.example .env
-chmod 600 .env
-nano .env  # Renseignez vos identifiants réels (DB_PASSWORD, JWT_SECRET, etc.)
-
-# 4. Autoriser l'utilisateur de déploiement à exécuter Docker sans sudo
-sudo usermod -aG docker $USER
-```
-
----
-
-## 🛡️ 7. Stratégie de Branches & Bonnes Pratiques
-
-- **`feat/nom-feature`** ou **`fix/nom-bug`** :
-  - Développez toujours vos modifications sur une branche dédiée créée depuis `main`.
-  - Ouvrez une Pull Request. Le workflow **CI** s'assure automatiquement que la compilation et les **139 tests** sont au vert.
-- **`staging`** :
-  - Branche dédiée à la recette / validation métier.
-  - Tout merge déclenche le workflow **CD Staging** pour tester l'application en conditions réelles.
-- **`main`** :
-  - Branche de référence de production.
-  - Tout merge ou création de tag (`v1.0.0`) déclenche le workflow **CD Production** qui nécessite l'**approbation d'un relecteur** avant tout déploiement physique.
+1. Rendez-vous dans l'onglet **Actions** de votre dépôt GitHub.
+2. Cliquez sur le workflow **CD - Production Deployment**.
+3. Cliquez sur **Run workflow** :
+   - Dans le champ `release_version`, saisissez le tag de l'ancienne version stable (ex: `v1.0.0` ou `prod-3f8a12c`).
+4. Validez l'approbation manuelle : le pipeline va automatiquement télécharger et réactiver l'ancienne version exacte en moins de 30 secondes sans rien recompiler !

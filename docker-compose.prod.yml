@@ -27,6 +27,7 @@ services:
   # Backend (Prod: Multi-Stage JRE Alpine, Non-Root User, Resource Quotas)
   # ----------------------------------------------------------------------------
   backend:
+    image: ${DOCKER_IMAGE_BACKEND:-stockpilot-backend:latest}
     build:
       context: ./backend
       dockerfile: Dockerfile.prod
@@ -53,6 +54,7 @@ services:
   # Frontend (Prod: Nginx Reverse Proxy + SPA Static Cache, HTTP Port 80)
   # ----------------------------------------------------------------------------
   frontend:
+    image: ${DOCKER_IMAGE_FRONTEND:-stockpilot-frontend:latest}
     build:
       context: ./frontend
       dockerfile: Dockerfile.prod
