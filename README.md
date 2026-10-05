@@ -19,27 +19,41 @@
 
 ---
 
-## 🎯 1. Description du Projet
+## 🎯 1. Description du Projet & Pratique Procure-to-Pay (P2P)
 
-**StockPilot** est une solution logicielle d'entreprise (*Enterprise-grade*) conçue pour automatiser et optimiser la chaîne d'approvisionnement et le suivi logistique des stocks. Elle centralise les articles, les mouvements de stock, les relations fournisseurs, ainsi que l'ensemble du cycle de commande d'achat avec traçabilité complète et audit.
+**StockPilot** est une plateforme logicielle d'entreprise (*Enterprise-grade*) dédiée à l'automatisation de la gestion des stocks, des entrepôts et du **cycle complet Procure-to-Pay (P2P / Purchase-to-Pay)**. 
 
-### 🌟 Fonctionnalités Clés
+### 💡 Qu'est-ce que la pratique Procure-to-Pay (P2P) ?
 
-* **📦 Gestion du Catalogue & des Stocks** :
-  * Référentiel des produits (SKU, code-barres, catégories, prix unitaire, devise).
-  * Seuils d'alerte configurables (stock minimum, alerte de réapprovisionnement automatique).
+Dans les organisations modernes, le cycle **Procure-to-Pay** désigne le processus intégré de bout en bout qui relie l'expression d'un besoin matériel interne à sa réception physique et son intégration en stock. 
+
+Sans un système P2P rigoureux, les entreprises s'exposent à des achats sauvages (*maverick buying*), des ruptures de stocks imprévues, des erreurs de facturation et des risques de fraude. **StockPilot formalise et sécurise cette pratique selon les standards industriels :**
+
+* 🛡️ **Ségrégation des Devoirs (*Segregation of Duties - SoD*)** : Un collaborateur (`USER`) peut exprimer un besoin d'achat, mais **seul un responsable habilité (`MANAGER` ou `ADMIN`) peut valider la dépense**, garantissant une étanchéité anti-fraude totale.
+* 📋 **Contrôle Budgétaire & Validation Formelle** : Chaque commande fournisseur (*Purchase Order*) provient impérativement d'une demande interne (*Purchase Request*) préalablement auditée et justifiée.
+* 📦 **Rapprochement à la Réception (*Goods Receipt Reconciliation*)** : Le stock physique n'est incrémenté qu'après validation de la livraison physique des marchandises (quantités vérifiées vs bon de commande).
+* 🔍 **Traçabilité & Piste d'Audit Complète (*Audit Trail*)** : Historisation immuable de chaque étape (qui a demandé, qui a approuvé, qui a réceptionné, quand le stock a été mis à jour).
+* 📉 **Optimisation du Besoin en Fonds de Roulement (BFR)** : Prévention des surstocks coûteux et des ruptures critiques grâce à des seuils d'alerte automatisés.
+
+---
+
+### 🌟 Fonctionnalités Clés du Système
+
+* **📦 Gestion du Catalogue & des Niveaux de Stock** :
+  * Référentiel unifié des produits (SKU unique, désignation, catégories, prix unitaire, devise).
+  * Seuils d'alerte configurables (stock minimum de sécurité, alerte de rupture imminente).
   * Traçabilité de chaque mouvement de stock : Entrées (`IN`), Sorties (`OUT`), Ajustements d'inventaire (`ADJUSTMENT`).
-* **🔄 Cycle d'Achat Complet (Procure-to-Pay / P2P)** :
-  * Demandes d'achat internes initiées par les collaborateurs.
-  * Circuit d'approbation hiérarchique par les Managers et Administrateurs.
-  * Émission des bons de commande (*Purchase Orders*) vers les fournisseurs.
-  * Réception contrôlée des marchandises avec mise à jour instantanée du stock physique.
+* **🔄 Cycle d'Achat P2P Digitalisé** :
+  * Création des demandes d'achat (*Purchase Requests*) par les équipes terrain.
+  * Circuit d'approbation hiérarchique avec motifs de refus ou validation documentée.
+  * Génération automatique des bons de commande (*Purchase Orders*) destinés aux fournisseurs.
+  * Réception contrôlée des marchandises avec enregistrement automatique des mouvements d'entrée.
 * **👥 Sécurité & Contrôle d'Accès basé sur les Rôles (RBAC)** :
   * 3 profils utilisateurs stricts : `ADMIN`, `MANAGER`, `USER`.
   * Authentification stateless JWT avec mécanisme de rotation de Refresh Tokens.
-  * Traçabilité des actions sensibles et protection CSRF / CORS fine.
-* **📊 Dashboard & Métriques en Temps Réel** :
-  * Vue synthétique de la valeur du stock, des alertes de rupture imminente et des commandes en cours.
+  * Protection fine des routes, des contrôleurs et des ressources sensibles.
+* **📊 Pilotage & Indicateurs Clés de Performance (KPIs)** :
+  * Métriques en temps réel sur la valorisation totale du stock, les commandes en attente et les articles sous le seuil critique.
 * **🛡️ Qualité Logicielle & Couverture de Tests** :
   * Suite automatisée de **139 tests** (110 tests unitaires Mockito + 29 tests d'intégration Spring Security & MockMvc).
 
