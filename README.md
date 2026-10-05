@@ -73,11 +73,12 @@ flowchart TD
         Nginx[Nginx Alpine - Port 80/443]
     end
 
-    subgraph BackendApp ["Backend Applicatif (Spring Boot 3)"]
-        Security[Spring Security + JWT Filter]
-        Controllers[REST Controllers: /api/v1/*]
-        Services[Couche Métier / Services P2P & Stock]
-        DataLayer[Spring Data JPA / Hibernate]
+    subgraph BackendApp ["Backend Applicatif (Spring Boot 3 - Clean / Hexagonal / DDD)"]
+        InboundAdapters["Adaptateurs d'Entrée (Inbound / Driving)\nREST Controllers, JWT Auth, Mappers"]
+        PortsIn["Ports d'Entrée (Use Cases / Interfaces)\nPurchaseService, StockService, AuthService"]
+        DomainCore["🔷 CŒUR MÉTIER PUR (Domain / DDD)\nEntités Métier, Agrégats, Règles Invariantes P2P, Calculs de Seuil"]
+        PortsOut["Ports de Sortie (Driven / SPI)\nProductRepository, OrderRepository, AuditPort"]
+        OutboundAdapters["Adaptateurs de Sortie (Outbound / Driven)\nSpring Data JPA, Hibernate, PostgreSQL Driver"]
     end
 
     subgraph Database ["Couche Données"]
@@ -85,18 +86,71 @@ flowchart TD
     end
 
     UI -->|Requêtes HTTP / REST| Nginx
-    Nginx -->|Proxy Pass /api| Security
-    Security --> Controllers
-    Controllers --> Services
-    Services --> DataLayer
-    DataLayer -->|Connexion JDBC Poolée| Postgres
+    Nginx -->|Proxy Pass /api| InboundAdapters
+    InboundAdapters --> PortsIn
+    PortsIn --> DomainCore
+    DomainCore --> PortsOut
+    PortsOut --> OutboundAdapters
+    OutboundAdapters -->|JDBC Poolé| Postgres
 ```
+
+---
+
+### 🔷 Architecture Backend : Hexagonale (Ports & Adapters) & Domain-Driven Design (DDD)
+
+Le backend adopte une **Architecture Hexagonale (*Clean Architecture / Ports & Adapters*)** couplée aux principes du **Domain-Driven Design (DDD)**. Cette approche garantit que la logique métier centrale reste totalement découplée des frameworks, de la base de données et des protocoles de transport.
+
+```
+       +---------------------------------------------------------------+
+       |             ADAPTATEURS D'ENTRÉE (Inbound / Driving)           |
+       |             - REST Controllers (Spring MVC)                   |
+       |             - Filtre d'Authentification JWT                   |
+       |             - DTOs & Mappers de Requête                       |
+       +-------------------------------+-------------------------------+
+                                       |
+                                       v
+       +-------------------------------+-------------------------------+
+       |             PORTS D'ENTRÉE (Primary Ports / Use Cases)        |
+       |             - Interfaces applicatives & Contrats de service   |
+       +-------------------------------+-------------------------------+
+                                       |
+                                       v
+       +===============================+===============================+
+       |             🔷 CŒUR DE DOMAINE MÉTIER (DDD Core)              |
+       |             - Entités Métier (Product, PurchaseOrder, Stock)  |
+       |             - Agrégats & Objets Valeurs (Value Objects)       |
+       |             - Règles d'invariance P2P & Transitions d'États   |
+       |             - Rapprochement & Calculs de Seuils de Sécurité   |
+       +===============================+===============================+
+                                       |
+                                       v
+       +-------------------------------+-------------------------------+
+       |             PORTS DE SORTIE (Secondary Ports / SPI)           |
+       |             - Contrats d'accès aux données & notifications    |
+       +-------------------------------+-------------------------------+
+                                       |
+                                       v
+       +-------------------------------+-------------------------------+
+       |             ADAPTATEURS DE SORTIE (Outbound / Driven)         |
+       |             - Implémentations Spring Data JPA / Hibernate     |
+       |             - Moteur PostgreSQL 16                            |
+       |             - Passerelles de logging & audit                  |
+       +---------------------------------------------------------------+
+```
+
+#### 🎯 Avantages Majeurs de cette Conception :
+1. **Indépendance Technologique** : Le cœur de métier ne contient aucune dépendance directe vers la base de données ou le web. Si le moteur de persistance ou l'API change, le métier reste intact.
+2. **Testabilité Optimale** : Les règles métier sont testables unitairement sans charger Spring ni de base de données (110 tests unitaires ultra-rapides exécutés en quelques secondes).
+3. **Modélisation DDD Expressive** : Les statuts (`PENDING_APPROVAL`, `APPROVED`, `ORDERED`, `COMPLETED`), les calculs de stock et les transitions d'états reflètent fidèlement le vocabulaire et les exigences du métier (Langage Ubiquitaire).
+4. **Maintenance Évolutive** : Nouveaux canaux (CLI, microservices, gRPC) ou nouvelles bases peuvent être branchés via de simples adaptateurs sans toucher au domaine.
+
+---
 
 ### 🧱 Composants Techniques
 
 | Composant | Technologie | Description |
 | :--- | :--- | :--- |
-| **Backend** | Spring Boot 3.4.3 / Java 17 | API REST stateless, Spring Security 6, Hibernate JPA, Bean Validation, Lombok. |
+| **Backend** | Spring Boot 3.4.3 / Java 17 | Architecture Hexagonale / DDD, Spring Security 6, Hibernate JPA, Bean Validation, Lombok. |
 | **Frontend** | React 19 / TypeScript / Vite | Single Page Application (SPA) réactive, TailwindCSS, Lucide Icons, Axios avec intercepteur de rafraîchissement de token. |
 | **Base de Données** | PostgreSQL 16 Alpine | RDBMS transactionnel avec indexation des SKU, contraintes d'intégrité et clés étrangères. |
 | **Conteneurisation** | Docker & Docker Compose | Multi-stage builds durcis, utilisateur non-root (`stockpilot:1001`), quotas de mémoire et de CPU. |
