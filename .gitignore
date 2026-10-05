@@ -47,6 +47,13 @@ pnpm-debug.log*
 !.env.example
 !.env.prod.example
 
+# Keys & Secrets
+*.pem
+*.key
+*.cer
+*.crt
+stockpilot-key.pem
+
 # Logs
 *.log
 
@@ -54,6 +61,7 @@ pnpm-debug.log*
 start.bat
 stop.bat
 start.sh
+scripts/
 
 # Documentation (ignored locally / not pushed)
 docs/
