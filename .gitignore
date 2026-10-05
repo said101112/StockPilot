@@ -54,3 +54,6 @@ pnpm-debug.log*
 start.bat
 stop.bat
 start.sh
+
+# Documentation (ignored locally / not pushed)
+docs/

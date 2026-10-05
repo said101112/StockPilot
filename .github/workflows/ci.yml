@@ -8,15 +8,19 @@ name: CI - Quality Gates & Tests
 on:
   push:
     branches:
+      - 'main'
+      - 'dev'
+      - 'develop'
+      - 'staging'
       - 'feat/**'
       - 'fix/**'
       - 'refactor/**'
       - 'chore/**'
-      - 'staging'
-      - 'main'
   pull_request:
     branches:
       - 'main'
+      - 'dev'
+      - 'develop'
       - 'staging'
   workflow_dispatch:
 
