@@ -7,9 +7,12 @@
 name: CD - Staging Deployment
 
 on:
-  push:
+  workflow_run:
+    workflows: ["CI - Quality Gates & Tests"]
     branches:
       - 'staging'
+    types:
+      - completed
   workflow_dispatch:
     inputs:
       force_deploy:
@@ -33,17 +36,21 @@ jobs:
   build-and-push-staging:
     name: Build & Push Images (Staging Version Tags)
     runs-on: ubuntu-latest
+    if: ${{ github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success' }}
     outputs:
       image_tag: ${{ steps.meta.outputs.tag }}
 
     steps:
       - name: 📥 Checkout repository
         uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.workflow_run.head_sha || github.sha }}
 
       - name: 🏷️ Determine Explicit Version Tag
         id: meta
         run: |
-          SHORT_SHA=$(echo "${{ github.sha }}" | cut -c1-7)
+          TARGET_SHA="${{ github.event.workflow_run.head_sha || github.sha }}"
+          SHORT_SHA=$(echo "${TARGET_SHA}" | cut -c1-7)
           TAG_NAME="staging-${SHORT_SHA}"
           echo "tag=${TAG_NAME}" >> $GITHUB_OUTPUT
           echo "IMAGE_TAG=${TAG_NAME}" >> $GITHUB_ENV
@@ -113,6 +120,8 @@ jobs:
     steps:
       - name: 📥 Checkout repository
         uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.workflow_run.head_sha || github.sha }}
 
       - name: 🚀 Deploy via SSH (when server credentials are provided)
         if: "${{ secrets.STAGING_SSH_HOST != '' && secrets.STAGING_SSH_KEY != '' }}"
